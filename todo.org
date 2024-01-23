@@ -1,0 +1,36 @@
+* Blue print issues
+
+https://m.youtube.com/watch?v=s87cTnmfM0k&feature=youtu.be
+
+Blue print issues to guide others
+
+* Copilot for docs
+
+https://githubnext.com/projects/copilot-for-docs/
+
+* Scicloj
+
+https://scicloj.github.io/docs/community/groups/
+
+* Reactive jupyter ipyflow
+
+https://github.com/ipyflow/ipyflow/
+
+* Vs
+
+https://devblogs.microsoft.com/visualstudio/surround-selection-experiment/
+
+
+* Lens web3
+
+https://variant.fund/articles/web3-social-media-under-the-lens/
+
+* Git worktree
+
+https://git-scm.com/docs/git-worktree
+
+* https://slack.engineering/how-we-design-our-apis-at-slack/
+* More c#
+
+https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/?tabs=net8plus
+
