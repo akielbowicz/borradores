@@ -3,4 +3,11 @@
 - Verificación automática
 - usar code coverage para encontrar tests
 - casos de prueba 
+- test oracles para validar compatibilidad con otras implementaciones
 
+  
+** Intro
+
+- Artesania de Software
+- Reproducibilidad
+- 
