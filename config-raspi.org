@@ -1,0 +1,40 @@
+# como agrando el tamaño de letra en la terminal
+
+https://www.raspberrypi-spy.co.uk/2014/04/how-to-change-the-command-line-font-size/
+
+# how to change byobu theme
+
+No hizo falta, cambiando el theme de fish es suficiente
+`fish_config theme choose "Solarized Dark"
+
+# Como saber si la targeta de red puede monitorear
+
+## Para instalar la tarjeta de red USB:
+
+[Netis WF2190](https://www.netis-systems.com/Suppory/de_details/id/1/de/96.html)
+
+https://unix.stackexchange.com/questions/528603/how-to-install-net\is-wf2190-driver-on-debian
+
+Funciono pero no puedo setear en monitor mode.
+
+Probando
+https://github.com/aircrack-ng/rtl8812au
+
+Pude instalar pero todavia no pude activar el monitor mode
+
+Hay que cambiar el CONFIG_PLATFORM en el Makefile
+
+Para reinstalar primero hay que desinstalar siguiendo este comando
+`sudo dkms remove 8812au/5.6.4.2_35491.20191025 --all`
+
+
+## Comandos que probre
+
+```
+iwconfig
+iwconfig wlan0 mode monitor
+dmesg
+lsusb
+sudo iwlist wlan0 scan
+```
+
