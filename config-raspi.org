@@ -27,6 +27,13 @@ Hay que cambiar el CONFIG_PLATFORM en el Makefile
 Para reinstalar primero hay que desinstalar siguiendo este comando
 `sudo dkms remove 8812au/5.6.4.2_35491.20191025 --all`
 
+(No funcionó)
+
+Ahora estoy probando https://github.com/morrownr/8812au-20210629
+
+Funciono!!!
+
+`tcpdump -n -e -s0 -vvv -i wlan1`
 
 ## Comandos que probre
 
