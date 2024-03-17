@@ -45,3 +45,15 @@ lsusb
 sudo iwlist wlan0 scan
 ```
 
+# Como remapear teclas
+
+Para poner CTRL en CAPS
+
+
+Siguiendo https://superuser.com/a/290149
+
+```
+showkey
+dumpkeys
+loadkeys
+```
