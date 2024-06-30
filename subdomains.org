@@ -1,0 +1,2 @@
+Setear redirects en Cloudflare
+https://community.cloudflare.com/t/forward-subdomain-to-url/569650/14
