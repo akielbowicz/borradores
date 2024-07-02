@@ -1,0 +1,25 @@
+Basandome en https://stackoverflow.com/a/58853529 puedo obtener la info
+de cual es el titulo de la ventana activa en la PC
+
+```
+Add-Type @"
+  using System;
+    using System.Runtime.InteropServices;
+      public class Tricks {
+          [DllImport("user32.dll")]
+	      public static extern IntPtr GetForegroundWindow();
+	      }
+	      "@
+
+	      $a = [tricks]::GetForegroundWindow()
+
+	      $WH = get-process | ? { $_.mainwindowhandle -eq $a }
+
+while ($true) {
+  $a = [tricks]::GetForegroundWindow()
+  $WH = get-process | ? { $_.mainwindowhandle -eq $a }
+  Write-Host "$($WH.Id) $($a) $(date) $($WH.Name) $($WH.MainWindowTitle)"
+  Start-Sleep -Seconds 1
+}	      
+
+```
