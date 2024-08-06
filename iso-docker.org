@@ -1,0 +1,39 @@
+Tenia que probarlo una vez mas, como instalar un programa que venia en 2 iso dentro de un container
+de Docker
+
+Varias restricciones:
+
+No tengo tanto espacio para copiar el contenido de ambos isos a mi maquina
+Entre los isos comparten la estructura de carpetas por ejemplo
+
+#+begin_src sh
+/mnt/iso1/data/inner/file1.txt
+/mnt/iso2/data/inner/file2.txt
+#+end_src
+
+Dentro de la imagen:
+
+mkdir /mnt/iso1
+mkdir /mnt/iso2
+
+mount -o loop /tmp/isos/iso1.iso
+mount -o loop /tmp/isos/iso2.iso
+
+mkdir /tmp/install
+
+cp -Rs /mnt/iso1 /tmp/install
+cp -Rs /mnt/iso2 /tmp/install
+
+
+Una vez que tengo la imagen de docker
+
+docker ps -a
+
+docker commit (#Hash o #Name) nueva_imagen
+
+
+Otras cosas que aprendi
+
+find -L $DIR -maxdepth 1 -type l -delete
+find -L $DIR -type d -delete -empty
+find -L $DIR -maxdepth 1 -type l -print #dryrun
