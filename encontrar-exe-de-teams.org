@@ -12,7 +12,7 @@ encontré esta [[https://stackoverflow.com/a/78101665][respuesta en SO]] donde m
 
 Y queria ver si  podia encontrar las demas flags, para eso busque el .exe de ms-teams
 
-src_{(get-command ms-teams.exe).Source}
+src_sh{(get-command ms-teams.exe).Source}
 
 #+BEGIN_SRC
 ls -l (get-command ms-teams).Source
@@ -27,7 +27,7 @@ la---            8/6/2024  8:15 PM              0 ms-teams.exe ->
 
 Sorpresivamente es un archivo de 0Bytes
 
-encontre en un [[https://stackoverflow.com/q/58296925][comentario]] que podia usar src_{fsutil reparsepoint query} para seguir
+encontre en un [[https://stackoverflow.com/q/58296925][comentario]] que podia usar src_sh{fsutil reparsepoint query} para seguir
 el symlink
 
 Pero me tiraba un output compilado, pero se puede ver usando este [[https://stackoverflow.com/a/71758499][script]]
@@ -73,7 +73,7 @@ function Resolve-AppXExePath {
 }
 #+END_SRC
 
-src_{Get-ChildItem -File $env:LOCALAPPDATA\Microsoft\WindowsApps | Resolve-AppXExePath}
+src_sh{Get-ChildItem -File $env:LOCALAPPDATA\Microsoft\WindowsApps | Resolve-AppXExePath}
 
 que me llevo a ~C:\Program Files\WindowsApps~ pero es una carpeta que no se ve, y si se la pone en la
 barra de navegacion salta una notificacion de permisos que se soluciona siguiendo [[https://superuser.com/a/498776][pasos]] y con eso finalmente
