@@ -1,0 +1,80 @@
+Quería automatizar el cambio de estado en Teams y buscando maneras de hacerlo con una API
+encontré esta [[https://stackoverflow.com/a/78101665][respuesta en SO]] donde muestran que existen los siguientes flags
+
+#+BEGIN_SRC
+--set-presence-to-available
+--set-presence-to-dnd
+--set-presence-to-be-right-back
+--set-presence-to-away
+--set-presence-to-offline
+--reset-presence
+#+END_SRC
+
+Y queria ver si  podia encontrar las demas flags, para eso busque el .exe de ms-teams
+
+src_{(get-command ms-teams.exe).Source}
+
+#+BEGIN_SRC
+ls -l (get-command ms-teams).Source
+
+    Directory: C:\Users\abc\AppData\Local\Microsoft\WindowsApps
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+la---            8/6/2024  8:15 PM              0 ms-teams.exe ->
+#+END_SRC
+
+
+Sorpresivamente es un archivo de 0Bytes
+
+encontre en un [[https://stackoverflow.com/q/58296925][comentario]] que podia usar src_{fsutil reparsepoint query} para seguir
+el symlink
+
+Pero me tiraba un output compilado, pero se puede ver usando este [[https://stackoverflow.com/a/71758499][script]]
+
+#+BEGIN_SRC
+function Resolve-AppXExePath {
+<#
+.SYNOPSIS
+  Resolves AppX execution aliases to their app IDs and target paths.
+.EXAMPLE
+  Get-ChildItem -File $env:LOCALAPPDATA\Microsoft\WindowsApps | Resolve-AppXExePath
+ .NOTES
+  This command is slow, because a call to fsutil.exe is made for each input path.
+  #>
+  param(
+    [Parameter(ValueFromPipeline)]
+    [Alias('PSPath')]
+    [string] $LiteralPath
+  )
+
+  process {
+    $fullName = Convert-Path -LiteralPath $LiteralPath
+    if (-not $?) { return }
+
+    # Get a hex-dump representation of the reparse-point data via fsutil reparsepoint query $fullName
+    $hexDump = fsutil reparsepoint query $fullName 2>&1
+    if ($LASTEXITCODE) { Write-Error $hexDump; return }
+
+    # Extract the raw bytes that make up the reparse-point data.
+    [byte[]] $bytes = -split (-join ($hexDump -match '^[a-f0-9]+:' -replace '^[a-f0-9]+:\s+(((?:[a-f0-9]{2}) +){1,16}).+$', '$1')) -replace '^', '0x'
+
+    # Convert the data to a UTF-16 string and split into fields by NUL bytes.
+    $props = [System.Text.Encoding]::Unicode.GetString($bytes) -split "`0"
+
+    # Output a custom object with the App ID (Package ID + entry-point name)
+    # and the target path (which may just be the universal UWP launcher)
+    [PSCustomObject] @{
+      AppId = $props[2]
+      Target = $props[3]
+    }
+
+  }
+}
+#+END_SRC
+
+src_{Get-ChildItem -File $env:LOCALAPPDATA\Microsoft\WindowsApps | Resolve-AppXExePath}
+
+que me llevo a ~C:\Program Files\WindowsApps~ pero es una carpeta que no se ve, y si se la pone en la
+barra de navegacion salta una notificacion de permisos que se soluciona siguiendo [[https://superuser.com/a/498776][pasos]] y con eso finalmente
+se puede llegar a los ejecutables de las aplicaciones instaladas con WinGet
