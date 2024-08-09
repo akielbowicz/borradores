@@ -1,0 +1,15 @@
+#+begin_src
+  wsl --install --distro debian
+#+end_src
+
+#+begin_src
+  sudo apt update; sudo apt upgrade
+  sudo apt install curl xz-utils
+  curl -fsSL https://get.jetify.com/devbox | bash
+#+end_src
+
+#+begin_src
+  devbox global add bat ripgrep emacs git fd starship
+#+end_src
+
+Nix no tiene ~build-essential~ pero hay un equivalente que es ~stdenv~

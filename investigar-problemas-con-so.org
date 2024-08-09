@@ -1,0 +1,13 @@
+Para investigar e inspeccionar archivos .so en linux
+
+binutils
+
+=ldd= para ver el linkage
+
+LD_LIBRARY_PATH=algun_path ldd libreria.so
+
+=objdump=
+
+=nm=
+
+LD_DEBUG=help cat
