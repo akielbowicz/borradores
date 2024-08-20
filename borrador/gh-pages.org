@@ -1,0 +1,1 @@
+Un nuevo issue en thecat.ar se arreglo con esto https://developers.cloudflare.com/ssl/troubleshooting/too-many-redirects/
