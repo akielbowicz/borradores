@@ -1,0 +1,43 @@
+# Publicar Org Files en GHPages con Jekyll
+date: 2024-09-19
+
+Volvamos a arrancar desde 0 porque ya no me acuerdo exactamente los pasos para reproducir local el build  de jekyll
+
+Tenemos que instalar Jekyll y sigo https://jekyllrb.com/docs/installation/windows/
+
+La instalacion de rubyinstaller la hago con "scoop install main/ruby"
+
+una vez instalado "ridk install" y la opcion 3 para que configure MSYS2 y MINGW, la última vez me olvidé de este paso y
+fallaba por todos lados
+
+
+"gem install jekyll bundler"
+
+agrego un par de cosas al _conf.yml siguiendo https://github.com/eggcaker/jekyll-org
+
+"bundler exec jekyll serve" falla
+
+jekyll-org-1.1.1/lib/jekyll-org.rb:44:in `read': no implicit conversion of Hash into Integer (TypeError)
+
+bundler add webrick
+
+Pruebo cambiando la version de Ruby a 2.7
+
+scoop install versions/ruby27
+ridk install
+rm Gemfile.lock
+bundler install
+
+bundler exec jekyll serve
+
+/org-ruby-0.9.12/lib/org-ruby/parser.rb:88:in `split': invalid byte sequence in UTF-8 (ArgumentError)
+
+Siguiendo https://stackoverflow.com/a/41741313
+
+borradores on  main [?] via 💎 v2.7.7 took 7s
+❯ rg -axv ".*" 
+borrador\config-raspi.org
+1:# como agrando el tamaXXXXo de letra en la terminal
+30:(No funcionXXXX)
+
+Ahora si buldea el sitio yay!!
