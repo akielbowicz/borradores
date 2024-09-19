@@ -1,4 +1,5 @@
-[[./machetes/dotnet.md][dotnet]] [[./machetes/git.md][git]]
+[[file:machetes/dotnet.org][dotnet]]
+[[./machetes/git.md][git]]
 [[./machetes/powershell.md][powershell]]
 [[./machetes/python.md][python]]
 [[./machetes/unix-shell.md][unix-shell]]
