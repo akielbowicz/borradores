@@ -1,0 +1,83 @@
+.. title: unix shell .. slug: unix-shell .. date: 2023-11-26 14:03:28
+UTC-03:00 .. tags: cli unix .. category: cli .. link: .. description: ..
+type: text
+
+*** Obtener ayuda de un comando
+:PROPERTIES:
+:CUSTOM_ID: obtener-ayuda-de-un-comando
+:END:
+#+begin_src sh
+man comando
+#+end_src
+
+*** Ejecutar un comando en segundo plano (*background*)
+:PROPERTIES:
+:CUSTOM_ID: ejecutar-un-comando-en-segundo-plano-background
+:END:
+#+begin_src sh
+comando &
+#+end_src
+
+Además, no mostrar la salida, enviandola a un archivo
+
+#+begin_src sh
+comando &>/algun/archivo &
+#+end_src
+
+O descartar la salida
+
+#+begin_src sh
+comando &>/dev/null &
+#+end_src
+
+*** Regresar un proceso secundario a principal
+:PROPERTIES:
+:CUSTOM_ID: regresar-un-proceso-secundario-a-principal
+:END:
+#+begin_src sh
+fg <id>
+#+end_src
+
+El =id= se puede ver con
+
+#+begin_src sh
+jobs
+#+end_src
+
+*** Agregar un usuario
+:PROPERTIES:
+:CUSTOM_ID: agregar-un-usuario
+:END:
+#+begin_src sh
+sudo adduser <nuevo_usuario>
+#+end_src
+
+Con permisos de administrador
+
+#+begin_src sh
+sudo adduser <nuevo_usuario> sudo
+#+end_src
+
+**** Cambiar de usuario
+:PROPERTIES:
+:CUSTOM_ID: cambiar-de-usuario
+:END:
+#+begin_src sh
+su -- <otro_usuario>
+#+end_src
+
+**** Agregar permisos de administrador a usuario
+:PROPERTIES:
+:CUSTOM_ID: agregar-permisos-de-administrador-a-usuario
+:END:
+#+begin_src sh
+sudo usermod -a -G sudo <usuario>
+#+end_src
+
+**** Cambiar la contraseña de un usuario
+:PROPERTIES:
+:CUSTOM_ID: cambiar-la-contraseña-de-un-usuario
+:END:
+#+begin_src sh
+sudo passwd <usuario>
+#+end_src

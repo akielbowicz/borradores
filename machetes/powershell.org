@@ -1,0 +1,113 @@
+.. title: powershell .. slug: powershell .. date: 2023-10-29 14:03:28
+UTC-03:00 .. tags: pwsh powershell .. category: cli .. link: ..
+description: .. type: text
+
+*** Obtener ayuda
+:PROPERTIES:
+:CUSTOM_ID: obtener-ayuda
+:END:
+#+begin_src powershell
+Get-Help
+#+end_src
+
+*** Listar contenidos de un directorio
+:PROPERTIES:
+:CUSTOM_ID: listar-contenidos-de-un-directorio
+:END:
+#+begin_src powershell
+Get-ChildItem 
+#+end_src
+
+*** Leer contenido de un archivo
+:PROPERTIES:
+:CUSTOM_ID: leer-contenido-de-un-archivo
+:END:
+#+begin_src powershell
+Get-Content
+#+end_src
+
+*** Importar / Exportar de formatos de texto
+:PROPERTIES:
+:CUSTOM_ID: importar-exportar-de-formatos-de-texto
+:END:
+#+begin_src powershell
+ConvertFrom-Csv
+ConvertFrom-Json
+#+end_src
+
+#+begin_src powershell
+ConvertTo-Csv
+ConvertTo-Json
+#+end_src
+
+** 
+:PROPERTIES:
+:CUSTOM_ID: section
+:END:
+*** Verificar si un archivo existe
+:PROPERTIES:
+:CUSTOM_ID: verificar-si-un-archivo-existe
+:END:
+#+begin_src powershell
+Test-Path
+#+end_src
+
+*** Crear un nuevo path
+:PROPERTIES:
+:CUSTOM_ID: crear-un-nuevo-path
+:END:
+#+begin_src powershell
+Join-Path
+#+end_src
+
+*** Obtener /path/ del ejecutable de un comando
+:PROPERTIES:
+:CUSTOM_ID: obtener-path-del-ejecutable-de-un-comando
+:END:
+#+begin_src powershell
+Get-Command
+#+end_src
+
+*** Listar aliases de un comando
+:PROPERTIES:
+:CUSTOM_ID: listar-aliases-de-un-comando
+:END:
+#+begin_src powershell
+Get-Alias
+#+end_src
+
+*** Cambiar la unicación
+:PROPERTIES:
+:CUSTOM_ID: cambiar-la-unicación
+:END:
+#+begin_src powershell
+Set-Location
+#+end_src
+
+*** Agregar ubicación al /stack/
+:PROPERTIES:
+:CUSTOM_ID: agregar-ubicación-al-stack
+:END:
+#+begin_src powershell
+Push-Location
+#+end_src
+
+*** Cambiar ubicación al elemento más reciente del /stack/
+:PROPERTIES:
+:CUSTOM_ID: cambiar-ubicación-al-elemento-más-reciente-del-stack
+:END:
+#+begin_src powershell
+Pop-Location
+#+end_src
+
+** TODO
+:PROPERTIES:
+:CUSTOM_ID: todo
+:END:
+#+begin_src powershell
+Invoke-Item
+Invoke-Expression
+Invoke-WebRequest
+Start-Process
+Set-Clipboard
+#+end_src

@@ -1,0 +1,43 @@
+.. title: python .. slug: python .. date: 2023-10-29 14:07:04 UTC-03:00
+.. tags: cli python .. category: cli .. link: .. description: .. type:
+text
+
+*** Obtener ayuda
+:PROPERTIES:
+:CUSTOM_ID: obtener-ayuda
+:END:
+#+begin_src sh
+python --help
+#+end_src
+
+*** Obtener versión
+:PROPERTIES:
+:CUSTOM_ID: obtener-versión
+:END:
+#+begin_src sh
+python --version
+#+end_src
+
+*** Ejecutar un módulo
+:PROPERTIES:
+:CUSTOM_ID: ejecutar-un-módulo
+:END:
+#+begin_src sh
+python -m
+#+end_src
+
+**** Crear un ambiente virtual (/virtual env/)
+:PROPERTIES:
+:CUSTOM_ID: crear-un-ambiente-virtual-virtual-env
+:END:
+#+begin_src sh
+python -m venv directorio_ambiente_virtual
+#+end_src
+
+**** Instalar un paquete
+:PROPERTIES:
+:CUSTOM_ID: instalar-un-paquete
+:END:
+#+begin_src sh
+python -m pip install nombre_del_paquete
+#+end_src

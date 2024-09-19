@@ -49,3 +49,8 @@ El warning dice de cambiar a deployar cno un custom  GHA
 https://jekyllrb.com/docs/continuous-integration/github-actions/
 
 El default falló, downgradeo a ruby 2.7 en el action
+
+ya funciona, pero ahora necesito  cambiar el todos los archivos .md a .org para que los agarre bien
+
+Get-ChildItem -Filter "*.md" -Recurse -Exclude "_site/*" | %{ pandoc --from markdown --to org $_.FullName -o $($_.FullName -replace
+ ".md",".org")}

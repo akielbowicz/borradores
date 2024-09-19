@@ -1,0 +1,86 @@
+.. title: git .. slug: git .. date: 2023-10-29 14:07:04 UTC-03:00 ..
+tags: cli git .. category: cli .. link: .. description: .. type: text
+
+*** Clonar un repositorio
+:PROPERTIES:
+:CUSTOM_ID: clonar-un-repositorio
+:END:
+#+begin_src sh
+git clone url_repositorio
+#+end_src
+
+*** Crear una nueva /branch/
+:PROPERTIES:
+:CUSTOM_ID: crear-una-nueva-branch
+:END:
+#+begin_src sh
+git switch --create nueva_brach
+#+end_src
+
+*** Cambiar de /branch/
+:PROPERTIES:
+:CUSTOM_ID: cambiar-de-branch
+:END:
+#+begin_src sh
+git switch otra_branch
+#+end_src
+
+*** Actualizar repositorio local
+:PROPERTIES:
+:CUSTOM_ID: actualizar-repositorio-local
+:END:
+#+begin_src sh
+git fetch --all --prune
+#+end_src
+
+*** /Mergear/ una /branch/
+:PROPERTIES:
+:CUSTOM_ID: mergear-una-branch
+:END:
+#+begin_src sh
+git merge repo/branch
+#+end_src
+
+**** Actualizar /branch/ actual con último /master|main/
+:PROPERTIES:
+:CUSTOM_ID: actualizar-branch-actual-con-último-mastermain
+:END:
+#+begin_src sh
+git fetch --all --prune; git merge origin/master
+#+end_src
+
+*** Crear otro árbol de trabajo /worktree/
+:PROPERTIES:
+:CUSTOM_ID: crear-otro-árbol-de-trabajo-worktree
+:END:
+#+begin_src sh
+git worktree add -b nueva_branch commit ../path
+#+end_src
+
+*** Listar /worktrees/
+:PROPERTIES:
+:CUSTOM_ID: listar-worktrees
+:END:
+#+begin_src sh
+git worktree list
+#+end_src
+
+** Materiales extras
+:PROPERTIES:
+:CUSTOM_ID: materiales-extras
+:END:
+Julia Evans
+[[https://jvns.ca/blog/2024/04/25/new-zine--how-git-works-/][How Git
+Works!]]
+[[https://jvns.ca/blog/2024/02/16/popular-git-config-options/][Popular
+git config options]]
+
+Nina Zakharenko
+[[https://github.com/nnja/advanced-git/blob/master/presentation/slides.pdf][Advanced
+Git In-Depth]]
+
+Mark Dominus [[https://blog.plover.com/2022/06/29/][Things I wish
+everyone knew about Git]]
+
+John Wiegley [[https://jwiegley.github.io/git-from-the-bottom-up/][Git
+from the Bottom Up]]
