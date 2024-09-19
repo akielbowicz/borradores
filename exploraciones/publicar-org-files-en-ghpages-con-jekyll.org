@@ -41,3 +41,11 @@ borrador\config-raspi.org
 30:(No funcionXXXX)
 
 Ahora si buldea el sitio yay!!
+
+varios intentos de dployar en gh actions pero todos con conflictos
+
+El warning dice de cambiar a deployar cno un custom  GHA
+
+https://jekyllrb.com/docs/continuous-integration/github-actions/
+
+El default falló, downgradeo a ruby 2.7 en el action
