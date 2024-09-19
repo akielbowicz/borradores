@@ -1,4 +1,4 @@
-# como agrando el tamaño de letra en la terminal
+# como agrando el tamaÃ±o de letra en la terminal
 
 https://www.raspberrypi-spy.co.uk/2014/04/how-to-change-the-command-line-font-size/
 
@@ -27,7 +27,7 @@ Hay que cambiar el CONFIG_PLATFORM en el Makefile
 Para reinstalar primero hay que desinstalar siguiendo este comando
 `sudo dkms remove 8812au/5.6.4.2_35491.20191025 --all`
 
-(No funcionó)
+(No funcionÃ³)
 
 Ahora estoy probando https://github.com/morrownr/8812au-20210629
 
