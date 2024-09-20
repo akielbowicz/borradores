@@ -54,3 +54,7 @@ ya funciona, pero ahora necesito  cambiar el todos los archivos .md a .org para 
 
 Get-ChildItem -Filter "*.md" -Recurse -Exclude "_site/*" | %{ pandoc --from markdown --to org $_.FullName -o $($_.FullName -replace
  ".md",".org")}
+
+ Medio trampa pero para que funcionen los links hay que poner en sintaxis del permalink [[/es/un/permalink][link]]
+
+ Genero los trees en la gh action
