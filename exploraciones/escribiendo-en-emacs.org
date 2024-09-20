@@ -1,4 +1,4 @@
-#+BEGIN_EXPORT
+#+BEGIN_EXPORT html
 ---
 title: Escribiendo un post en Emacs
 slug: escribiendo-en-emacs
