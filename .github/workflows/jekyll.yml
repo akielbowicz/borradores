@@ -44,10 +44,10 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Armar arbol de documentos
         run: |
-	     ls borrador/*.org | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/" > borrador.org
-	     ls exploraciones/*.org | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/" > exploraciones.org
-	     ls machetes/*.org | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/" > machetes.org
-	     ls *.org | grep -v index | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/"
+           ls borrador/*.org | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/" > borrador.org
+           ls exploraciones/*.org | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/" > exploraciones.org
+           ls machetes/*.org | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/" > machetes.org
+           ls *.org | grep -v index | sed "s/\.org/]]/" | sed "s/^/[[\//" | sed "s/\$/\n/"
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
         run: bundle exec jekyll build --baseurl "borradores"
