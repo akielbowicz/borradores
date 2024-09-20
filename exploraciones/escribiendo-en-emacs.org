@@ -1,6 +1,19 @@
-.. title: Escribiendo un post en Emacs .. slug: escribiendo-en-emacs ..
-date: 2024-07-28 18:36:27 UTC-03:00 .. tags: .. category: exploracion ..
-link: .. description: .. type: text Time-stamp: < >
+#+BEGIN_EXPORT
+---
+title: Escribiendo un post en Emacs
+slug: escribiendo-en-emacs
+date: 2024-07-28 18:36:27 UTC-03:00
+tags:
+category: exploracion
+link:
+description:
+type: text
+---
+#+END_EXPORT
+
+2024-09-19
+
+21:40 Para agregar links =C-c C-l=
 
 2024-08-07
 
