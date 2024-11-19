@@ -1,0 +1,6 @@
+# review-requested en GitHub
+:github:
+
+Pare ver todos los Reviews de todos los repos de GitHub agregados en una sola página
+
+[[https://github.com/pulls/review-requested][review-requested]]
