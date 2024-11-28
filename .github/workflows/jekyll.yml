@@ -46,8 +46,8 @@ jobs:
         run: |
            for dir in */; do #magic
               dir_name="${dir%/}"; #more magic
-              echo "[[..]]" > "$dir_name.org"
-              ls $dir_name/*.org | sed "s/\.org/]]/" | sed "s/^/[[/" | sed "s/\$/\n/" > "$dir_name.org";
+              echo "[[..]]\n" > "$dir_name.org"
+              ls $dir_name/*.org | sed "s/\.org/]]/" | sed "s/^/[[/" | sed "s/\$/\n/" >> "$dir_name.org";
            done
            ls *.org | grep -v index | sed "s/\.org/]]/" | sed "s/^/[[/" | sed "s/\$/\n/" > index.org
       - name: Build with Jekyll
