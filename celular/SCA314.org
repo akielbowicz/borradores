@@ -1,0 +1,10 @@
+* ideas
+
+- Batch jobs, how to avoid redoing work
+
+* Formas de detectar un error
+
+Pensar en causas del error
+Ordenarlas
+
+
