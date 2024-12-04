@@ -1,0 +1,5 @@
+# Como hacer checkout de una linea en  git
+
+=git checkout origin/una-branch -p -- archivo.md=
+
+[[https://stackoverflow.com/a/6963150]]
