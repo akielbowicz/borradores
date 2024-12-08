@@ -6,6 +6,6 @@ Un par de comandos para explorar el código en la REPL
 #+BEGIN_SRC julia
 @less llama_alguna_funcion(arg1,arg2)
 @edit otra_funcion(1, arg100)
-#+END_SCR
+#+END_SRC
 
 [[https://www.youtube.com/watch?v=RTVXaDR697k][EmacsConf 2024: Exploring shared philosophies in Julia and Emacs - Gabriele Bozzola]]
