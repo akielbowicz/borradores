@@ -1,7 +1,7 @@
 #+TITLE: Julia REPL
 #+DATE: <2024-12-08>
 
-Un par de comandos para explorar el código en la REPL
+Un par de comandos para explorar el cÃ³digo en la REPL
 
 #+BEGIN_SRC julia
 @less llama_alguna_funcion(arg1,arg2)
