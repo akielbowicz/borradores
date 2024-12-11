@@ -1,0 +1,4 @@
+* Recibir valores desde un pipe :powershell:
+
+https://stackoverflow.com/questions/9328777/valuefrompipeline-behavior
+
