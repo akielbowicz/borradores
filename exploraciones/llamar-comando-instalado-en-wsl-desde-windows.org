@@ -1,0 +1,13 @@
+# Llamar comando instalado en wsl desde Windows
+date: 2024-12-12
+
+2024-12-12
+
+20:07 Hace un par de días estoy intentando ejecutar zk desde powershell directamente sin tener que entrar primero
+a wsl. Y el problema que tengo es que ejecutando =wsl --exec zk= no lo encuentra porque no carga devbox o hombrew cuando
+se inicializa un comando de esa manera. Es algo que se llama 'no-login' shell.
+
+Finalmente logré hacer que funcione llamando =wsl --exec bash --login -c 'zk'= y agregando los comandos de inicialización
+del perfil de bash en .profile en vez de en .bashrc
+
+Adicionalmente para que todo funcione ok, tuve que setear EDITOR="emacs -nw" y ZK_NOTEBOOK_DIR="path al repo"
