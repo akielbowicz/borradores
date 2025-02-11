@@ -2,3 +2,17 @@
 
 https://stackoverflow.com/questions/9328777/valuefrompipeline-behavior
 
+* Instalar mlcchat en android
+
+La versión de la página crasheaba cuando iniciaba un chat
+
+[[https://github.com/mlc-ai/binary-mlc-llm-libs/releases]] la última versión de releases (sep2024) funciona.
+
+Ahora lo único es que solo hay modelos instruct y no tiene el Role: user habilitado 
+
+* Glibc runner
+
+Necesario para correr babashka en termux
+
+https://github.com/termux-pacman/glibc-packages/wiki/About-glibc-runner-%28grun%29
+
