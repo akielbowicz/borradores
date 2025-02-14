@@ -11,7 +11,7 @@ No hizo falta, cambiando el theme de fish es suficiente
 
 ## Para instalar la tarjeta de red USB:
 
-[Netis WF2190](https://www.netis-systems.com/Suppory/de_details/id/1/de/96.html)
+[[https://www.netis-systems.com/Suppory/de_details/id/1/de/96.html][Netis WF2190]]
 
 https://unix.stackexchange.com/questions/528603/how-to-install-net\is-wf2190-driver-on-debian
 

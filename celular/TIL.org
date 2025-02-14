@@ -1,6 +1,6 @@
 * Recibir valores desde un pipe :powershell:
 
-https://stackoverflow.com/questions/9328777/valuefrompipeline-behavior
+[[https://stackoverflow.com/questions/9328777/valuefrompipeline-behavior]]
 
 * Instalar mlcchat en android
 
@@ -14,5 +14,6 @@ Ahora lo único es que solo hay modelos instruct y no tiene el Role: user habili
 
 Necesario para correr babashka en termux
 
-https://github.com/termux-pacman/glibc-packages/wiki/About-glibc-runner-%28grun%29
+[[https://github.com/termux-pacman/glibc-packages/wiki/About-glibc-runner-%28grun%29]]
 
+[[https://github.com/babashka/babashka/discussions/1392#discussioncomment-12181334][babashka/discussion]]
