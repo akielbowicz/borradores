@@ -47,6 +47,18 @@ nu
 - `bbk` - Run babashka (handles LD_PRELOAD issue)
 - **Tab completion** - Enhanced by Carapace for 600+ commands (git, npm, docker, etc.)
 
+### Git Aliases (Two-Thumb Colemak DH Optimized)
+Quick workflow using center/easy keys:
+- `gn` - git status (right thumb, center key)
+- `ge` - git add . (right thumb, easy reach)
+- `gt` - git commit (left thumb, center key)
+- `gh` - git push (right thumb, center key)
+- `gd` - git diff (left thumb, center key)
+- `gr` - git pull (left thumb)
+- `gi` - git commit -m (right thumb)
+
+**See**: `~/dev/borradores/celular/GIT_ALIASES_COLEMAK.md` for complete documentation
+
 ### Zk Note Commands
 - `zk today` - Open/create today's daily note
 - `zk list` - List all notes
