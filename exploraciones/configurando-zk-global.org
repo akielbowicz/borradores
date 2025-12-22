@@ -1,0 +1,22 @@
+#+title: Configurando ZK global
+
+Quiero configurad ZK en este repositorio de manera que después pueda llamarlo de manera global
+y me permita crear nuevas anotaciones de manera rápida e incluso estandarizar la manera en la que puedo
+utilizar IA para crear las notas como en [[https://idratherbewriting.com/blog/ai-stream-journaling-experiment][AI stream journaling]].
+
+Tengo que tener las siguientes categorías
+
+- til: Today I Learned / hoy aprendí
+- mch: Cheat sheet / Machete
+- exp: Exploraciones
+- tiw: Things I want / Cosas o ideas que me gustaría tener
+- ida: I.D.A (idea) ideas
+
+Después en otro repo tengo que configurar los siguientes
+
+- jrn: Jornal o Notas diarias / Journal
+- lab: Notas específicas de un proyecto
+
+Quizas lo mejor es tener en cada repo los templates y aliases de los comandos y después crear un justfile global
+con un alias apuntando a cada uno. Esto para poder hacerlo más dinámico y que commitee y pushee los cambios de manera
+rápida cada vez que salga del editor
