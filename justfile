@@ -3,7 +3,7 @@
 # Crear una nota TIL (Today I Learned / Hoy aprendí)
 til titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input hoy-aprendi --template til.org --title "TIL: {{titulo}}" --print-path)
+    note_path=$(zk new --no-input hoy-aprendi --template til.org --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar TIL: {{titulo}}"
     git push
@@ -12,7 +12,7 @@ til titulo:
 # Crear un machete (cheat sheet)
 mch titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input machetes --template mch.org --title "Machete: {{titulo}}" --print-path)
+    note_path=$(zk new --no-input machetes --template mch.org --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar machete: {{titulo}}"
     git push
@@ -30,7 +30,7 @@ exp titulo:
 # Crear una nota de "quiero" (things I want)
 tiw titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input quiero --template tiw.org --title "Quiero: {{titulo}}" --print-path)
+    note_path=$(zk new --no-input quiero --template tiw.org --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar cosa que quiero: {{titulo}}"
     git push
@@ -39,7 +39,7 @@ tiw titulo:
 # Crear una idea
 ida titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input ideas --template ida.org --title "Idea: {{titulo}}" --print-path)
+    note_path=$(zk new --no-input ideas --template ida.org --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar idea: {{titulo}}"
     git push
@@ -51,16 +51,16 @@ ai-note categoria titulo contenido:
     set -euo pipefail
     # Mapear categoría a directorio
     case "{{categoria}}" in
-        til) dir="hoy-aprendi"; template="til.org"; prefix="TIL: ";;
-        mch) dir="machetes"; template="mch.org"; prefix="Machete: ";;
-        exp) dir="exploraciones"; template="exp.org"; prefix="";;
-        tiw) dir="quiero"; template="tiw.org"; prefix="Quiero: ";;
-        ida) dir="ideas"; template="ida.org"; prefix="Idea: ";;
+        til) dir="hoy-aprendi"; template="til.org";;
+        mch) dir="machetes"; template="mch.org";;
+        exp) dir="exploraciones"; template="exp.org";;
+        tiw) dir="quiero"; template="tiw.org";;
+        ida) dir="ideas"; template="ida.org";;
         *) echo "Categoría no válida. Usa: til, mch, exp, tiw, ida"; exit 1;;
     esac
     # Generar contenido con IA
     echo "Generando nota con IA..."
-    full_title="${prefix}{{titulo}}"
+    full_title="{{titulo}}"
     # Crear nota con zk
     note_path=$(zk new --no-input "$dir" --template "$template" --title "$full_title" --print-path)
     # Usar Claude API para generar contenido estructurado

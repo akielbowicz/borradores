@@ -24,15 +24,15 @@ link-format = "[[{{path}}][{{title}}]]"
 # Aliases para cada categoría de nota
 [alias]
 # Today I Learned / Hoy aprendí
-til = 'zk new --no-input hoy-aprendi --template til.org --title "TIL: $1" "${@:2}"'
+til = 'zk new --no-input hoy-aprendi --template til.org --title "$@"'
 # Cheat sheet / Machete
-mch = 'zk new --no-input machetes --template mch.org --title "Machete: $1" "${@:2}"'
+mch = 'zk new --no-input machetes --template mch.org --title "$@"'
 # Exploraciones
 exp = 'zk new --no-input exploraciones --template exp.org --title "$@"'
 # Things I want / Cosas que me gustaría tener
-tiw = 'zk new --no-input quiero --template tiw.org --title "Quiero: $1" "${@:2}"'
+tiw = 'zk new --no-input quiero --template tiw.org --title "$@"'
 # Ideas
-ida = 'zk new --no-input ideas --template ida.org --title "Idea: $1" "${@:2}"'
+ida = 'zk new --no-input ideas --template ida.org --title "$@"'
 
 # Grupo de templates por directorio
 [group.til]
