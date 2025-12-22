@@ -2,3 +2,8 @@
 date: 2025-12-22
 
 
+ Comandos Útiles
+
+- SPC SPC para buscar
+- SPC . para buscar en archivos
+- SPC m l l - Insertar/editar link
