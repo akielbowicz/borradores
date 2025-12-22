@@ -1,5 +1,28 @@
+# Emacs temporary files
 *~
 \#*\#
 .\#*
+
+# Custom
 .zk
-_site
+
+# Jekyll build artifacts
+_site/
+.jekyll-cache/
+.sass-cache/
+
+# Generated navigation files (created by scripts/generate-indices.sh)
+index.org
+borrador.org
+exploraciones.org
+machetes.org
+hoy-aprendi.org
+celular.org
+
+# Ruby/Bundler
+vendor/
+.bundle/
+
+# OS files
+.DS_Store
+Thumbs.db

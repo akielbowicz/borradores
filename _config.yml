@@ -1,2 +1,18 @@
+# Site settings
+title: Borradores
+description: Personal knowledge repository and technical notes in org-mode
+baseurl: "/borradores"
+url: "https://akielbowicz.github.io"
+
+# Org-mode conversion
 plugins:
  - jekyll-org
+
+# Build settings
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.org
+  - AGENTS.md
+  - .ruby-version
+  - vendor/
