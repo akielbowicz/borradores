@@ -57,4 +57,5 @@ template = "ida.org"
 
 # Configuración del editor
 [tool]
-editor = "${EDITOR:-vim}"
+# Usa la variable de entorno EDITOR
+# Si no está definida, zk usará vim por defecto
