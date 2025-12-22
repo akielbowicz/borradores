@@ -7,8 +7,8 @@ set -e
 
 # Generate index for each directory
 for dir in */; do
-    # Skip hidden directories and _site
-    if [[ "$dir" == .* ]] || [[ "$dir" == "_site/" ]] || [[ "$dir" == "vendor/" ]] || [[ "$dir" == "scripts/" ]]; then
+    # Skip hidden directories, _site, and vendor
+    if [[ "$dir" == .* ]] || [[ "$dir" == "_site/" ]] || [[ "$dir" == "vendor/" ]]; then
         continue
     fi
 

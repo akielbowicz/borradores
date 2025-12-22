@@ -11,7 +11,7 @@ _site/
 .jekyll-cache/
 .sass-cache/
 
-# Generated navigation files (created by scripts/generate-indices.sh)
+# Generated navigation files (created by .github/scripts/generate-indices.sh)
 index.org
 borrador.org
 exploraciones.org
