@@ -3,7 +3,7 @@
 # Crear una nota TIL (Today I Learned / Hoy aprendí)
 til titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input hoy-aprendi --title "{{titulo}}" --print-path)
+    note_path=$(zk new hoy-aprendi --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar TIL: {{titulo}}"
     git push
@@ -12,7 +12,7 @@ til titulo:
 # Crear un machete (cheat sheet)
 mch titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input machetes --title "{{titulo}}" --print-path)
+    note_path=$(zk new machetes --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar machete: {{titulo}}"
     git push
@@ -21,7 +21,7 @@ mch titulo:
 # Crear una exploración
 exp titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input exploraciones --title "{{titulo}}" --print-path)
+    note_path=$(zk new exploraciones --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar exploración: {{titulo}}"
     git push
@@ -30,7 +30,7 @@ exp titulo:
 # Crear una nota de "quiero" (things I want)
 tiw titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input quiero --title "{{titulo}}" --print-path)
+    note_path=$(zk new quiero --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar cosa que quiero: {{titulo}}"
     git push
@@ -39,7 +39,7 @@ tiw titulo:
 # Crear una idea
 ida titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input ideas --title "{{titulo}}" --print-path)
+    note_path=$(zk new ideas --title "{{titulo}}" --print-path)
     git add "$note_path"
     git commit -m "Agregar idea: {{titulo}}"
     git push
