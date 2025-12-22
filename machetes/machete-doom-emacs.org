@@ -1,0 +1,13 @@
+#+title: Machete: doom-emacs
+#+date: 2025-12-22
+
+* Machete: doom-emacs
+
+** Comandos principales
+
+
+** Ejemplos
+
+
+** Notas adicionales
+
