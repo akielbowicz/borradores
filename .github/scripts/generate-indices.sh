@@ -22,13 +22,14 @@ for dir in */; do
     echo "Generating index for: $dir_name"
 
     # Create directory index with parent link
-    echo "[[..]]" > "$dir_name.org"
+    echo "- [[../index.html][..]]" > "$dir_name.org"
     echo "" >> "$dir_name.org"
 
-    # Add links to all .org files in the directory
+    # Add links to all .org files in the directory (converted to .html)
     ls "$dir_name"/*.org | while read -r file; do
         basename=$(basename "$file" .org)
-        echo "[[$file][$basename]]" >> "$dir_name.org"
+        htmlpath="${file%.org}.html"
+        echo "- [[$htmlpath][$basename]]" >> "$dir_name.org"
     done
 done
 
@@ -37,11 +38,12 @@ echo "Generating main index.org"
 echo "#+TITLE: Borradores - Index" > index.org
 echo "" >> index.org
 
-# Add links to all top-level .org files (except index.org itself)
+# Add links to all top-level .org files (except index.org itself, converted to .html)
 for file in *.org; do
     if [[ "$file" != "index.org" ]]; then
         basename=$(basename "$file" .org)
-        echo "[[$file][$basename]]" >> index.org
+        htmlfile="${file%.org}.html"
+        echo "- [[$htmlfile][$basename]]" >> index.org
     fi
 done
 
