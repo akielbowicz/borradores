@@ -1,0 +1,13 @@
+#+title: {{title}}
+#+date: {{date now}}
+
+* {{title}}
+
+** Comandos principales
+
+
+** Ejemplos
+
+
+** Notas adicionales
+

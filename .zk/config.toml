@@ -1,0 +1,55 @@
+# Configuración de ZK para borradores
+[note]
+# Directorio raíz de las notas
+dir = "."
+# Formato de nombre de archivo: slug basado en el título
+filename = "{{slug title}}.org"
+# Template por defecto
+default-template = "default.org"
+# Idioma para generación de slugs
+lang = "es"
+# ID único para enlaces
+id-charset = "alphanum"
+id-length = 8
+id-case = "lower"
+
+[format.org]
+# Configuración para archivos org-mode
+extension = "org"
+# Patrón para extraer el título (#+title: Título)
+title = "#+title:"
+# Patrón para enlaces wiki-style [[link][descripción]]
+link-format = "[[{{path}}][{{title}}]]"
+
+# Aliases para cada categoría de nota
+[alias]
+# Today I Learned / Hoy aprendí
+til = 'zk new --no-input hoy-aprendi --template til.org --title "TIL: $1" "${@:2}"'
+# Cheat sheet / Machete
+mch = 'zk new --no-input machetes --template mch.org --title "Machete: $1" "${@:2}"'
+# Exploraciones
+exp = 'zk new --no-input exploraciones --template exp.org --title "$@"'
+# Things I want / Cosas que me gustaría tener
+tiw = 'zk new --no-input quiero --template tiw.org --title "Quiero: $1" "${@:2}"'
+# Ideas
+ida = 'zk new --no-input ideas --template ida.org --title "Idea: $1" "${@:2}"'
+
+# Grupo de templates por directorio
+[group.til]
+paths = ["hoy-aprendi"]
+
+[group.mch]
+paths = ["machetes"]
+
+[group.exp]
+paths = ["exploraciones"]
+
+[group.tiw]
+paths = ["quiero"]
+
+[group.ida]
+paths = ["ideas"]
+
+# Configuración del editor
+[tool]
+editor = "${EDITOR:-vim}"

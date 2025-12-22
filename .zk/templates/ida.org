@@ -1,0 +1,16 @@
+#+title: {{title}}
+#+date: {{date now}}
+
+* {{title}}
+
+** La idea
+
+
+** ¿Qué problema resuelve?
+
+
+** Posibles implementaciones
+
+
+** Notas
+

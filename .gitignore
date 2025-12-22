@@ -4,7 +4,11 @@
 .\#*
 
 # Custom
-.zk
+# Note: .zk/config.toml and .zk/templates/ should be in git
+# Only ignore zk cache and temporary files
+.zk/cache/
+.zk/.zk.db*
+.zk/notebooks.db*
 
 # Jekyll build artifacts
 _site/
@@ -18,6 +22,8 @@ exploraciones.org
 machetes.org
 hoy-aprendi.org
 celular.org
+ideas.org
+quiero.org
 
 # Ruby/Bundler
 vendor/

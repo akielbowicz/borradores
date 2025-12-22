@@ -1,0 +1,14 @@
+#+title: {{title}}
+#+date: {{date now}}
+
+* {{title}}
+
+** Lo que aprendí
+
+
+** Por qué es importante
+
+
+** Referencias
+
+-

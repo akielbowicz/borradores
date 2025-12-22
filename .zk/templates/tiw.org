@@ -1,0 +1,20 @@
+#+title: {{title}}
+#+date: {{date now}}
+
+* {{title}}
+
+** ¿Qué quiero?
+
+
+** ¿Por qué lo quiero?
+
+
+** ¿Cómo podría obtenerlo?
+
+
+** Estado
+
+- [ ] Idea inicial
+- [ ] Investigación
+- [ ] En progreso
+- [ ] Completado
