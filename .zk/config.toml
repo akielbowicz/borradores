@@ -3,7 +3,7 @@
 # Directorio raíz de las notas
 dir = "."
 # Formato de nombre de archivo: slug basado en el título
-filename = "{{slug title}}.org"
+filename = "{{slug title}}"
 # Template por defecto
 default-template = "default.org"
 # Idioma para generación de slugs
