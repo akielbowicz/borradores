@@ -1,0 +1,22 @@
+#+title: Nushell Homebrew paths on Bluefin
+#+date: 2023-12-23
+#+filetags: :nushell:bluefin:homebrew:
+
+On Bluefin, fish gets Homebrew via =/usr/share/fish/vendor_conf.d/ublue-brew.fish= which runs =brew shellenv=. Nushell has no equivalent.
+
+Add to =~/.config/nushell/env.nu=:
+
+#+begin_src nushell
+$env.HOMEBREW_PREFIX = "/home/linuxbrew/.linuxbrew"
+$env.PATH = ($env.PATH | split row (char esep) 
+    | prepend "/home/linuxbrew/.linuxbrew/bin"
+    | prepend "/home/linuxbrew/.linuxbrew/sbin")
+#+end_src
+
+Then regenerate tool configs:
+
+#+begin_src bash
+zoxide init nushell > ~/.zoxide.nu
+atuin init nu > ~/.cache/nushell/atuin.nu
+starship init nu > $(nu -c '$nu.data-dir')/vendor/autoload/starship.nu
+#+end_src
