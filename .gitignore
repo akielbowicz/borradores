@@ -8,7 +8,7 @@
 # Only ignore zk cache and temporary files
 .zk/cache/
 .zk/.zk.db*
-.zk/notebooks.db*
+.zk/notebook.db*
 
 # Jekyll build artifacts
 _site/
