@@ -1,4 +1,88 @@
-# Modular SSH and Git config for multiple identities
-date: 2025-12-23
+#+TITLE: Modular SSH and Git config for multiple identities
+#+DATE: 2025-12-23
+
+* Problem
+
+Managing multiple GitHub identities (personal, work, org accounts) requires:
+- Different SSH keys per identity
+- Different git user.name/email per identity
+- URL rewriting so cloning "just works"
+
+The old setup used =includeIf "gitdir:"= blocks in =~/.gitconfig=, requiring a new block for each directory where repos lived.
+
+* Solution
+
+** SSH Config: One file per identity
+
+Instead of a monolithic =~/.ssh/config=, use:
+
+#+BEGIN_SRC
+~/.ssh/
+├── config          # just "Include profiles/*"
+└── profiles/
+    ├── ak
+    ├── sk
+    ├── ch
+    └── ph
+#+END_SRC
+
+Each profile file contains:
+
+#+BEGIN_SRC conf
+Host ak
+    HostName ssh.github.com
+    Port 443
+    User akielbowicz
+    IdentityFile ~/.ssh/id_ak
+#+END_SRC
+
+** Git Config: URL rewriting + hasconfig
+
+The =~/.gitconfig= now has two parts:
+
+*** URL Rewriting
+
+Maps GitHub usernames to SSH host aliases:
+
+#+BEGIN_SRC gitconfig
+[url "git@ak:akielbowicz/"]
+    insteadOf = "https://github.com/akielbowicz/"
+    insteadOf = "git@github.com:akielbowicz/"
+#+END_SRC
+
+This allows cloning with regular GitHub URLs while automatically using the correct SSH key.
+
+*** Identity Selection via hasconfig (Git 2.36+)
+
+Instead of matching by directory, match by remote URL:
+
+#+BEGIN_SRC gitconfig
+[includeIf "hasconfig:remote.*.url:git@ak:**"]
+    path = ~/.config/git/profiles/ak
+#+END_SRC
+
+Profile files live in =~/.config/git/profiles/= and contain only user info:
+
+#+BEGIN_SRC gitconfig
+[user]
+    name = "akielbowicz"
+    email = "augusto.kiel@gmail.com"
+#+END_SRC
+
+* Benefits
+
+- *Clone from anywhere*: =git clone https://github.com/akielbowicz/repo= uses the correct key automatically
+- *No directory restrictions*: repos can live anywhere, identity is determined by remote URL
+- *Easy to add new identities*: just add files to =~/.ssh/profiles/= and =~/.config/git/profiles/=
+- *Modular*: each identity is self-contained in its own files
+
+* File Locations
+
+| Purpose | Location |
+|---------+----------|
+| SSH profiles | =~/.ssh/profiles/*= |
+| Git profiles | =~/.config/git/profiles/*= |
+| Main git config | =~/.gitconfig= |
+| Main SSH config | =~/.ssh/config= |
 
 
