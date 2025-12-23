@@ -1,0 +1,4 @@
+# Modular SSH and Git config for multiple identities
+date: 2025-12-23
+
+
