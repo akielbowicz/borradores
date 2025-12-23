@@ -57,9 +57,11 @@ This allows cloning with regular GitHub URLs while automatically using the corre
 Instead of matching by directory, match by remote URL:
 
 #+BEGIN_SRC gitconfig
-[includeIf "hasconfig:remote.*.url:git@ak:**"]
+[includeIf "hasconfig:remote.*.url:git@ak:*/**"]
     path = ~/.config/git/profiles/ak
 #+END_SRC
+
+*Important*: The glob pattern must be =*/**= not just =**=. The =**= pattern requires a =/= path separator to match, but SSH URLs have the format =git@host:Org/repo.git= (no slash after the colon). Using =*/**= correctly matches =Org/repo.git=.
 
 Profile files live in =~/.config/git/profiles/= and contain only user info:
 
@@ -75,6 +77,7 @@ Profile files live in =~/.config/git/profiles/= and contain only user info:
 - *No directory restrictions*: repos can live anywhere, identity is determined by remote URL
 - *Easy to add new identities*: just add files to =~/.ssh/profiles/= and =~/.config/git/profiles/=
 - *Modular*: each identity is self-contained in its own files
+- *No per-directory .gitconfig files needed*: the URL-based matching eliminates the need for .gitconfig files in each workspace directory
 
 * File Locations
 
