@@ -1,0 +1,49 @@
+* Goose (Claude Code) en Termux/Android
+
+Para hacer funcionar Goose en Termux necesitamos:
+
+** Instalación de dependencias
+
+#+begin_src bash
+pkg install nodejs
+#+end_src
+
+** Instalación de Goose
+
+El binario se instala en:
+=/data/data/com.termux/files/home/.local/bin/goose=
+
+** Configuración de PATH
+
+Agregar a =~/.bashrc=:
+
+#+begin_src bash
+export PATH="$HOME/.local/bin:$PATH"
+#+end_src
+
+** Variables de entorno importantes
+
+- =PREFIX=/data/data/com.termux/files/usr= (automático en Termux)
+- =HOME=/data/data/com.termux/files/home= (automático en Termux)
+- =CLAUDECODE=1= (seteado por goose al ejecutar)
+- =CLAUDE_CODE_ENTRYPOINT=cli= (seteado por goose)
+
+** Configuración de Goose
+
+Los archivos de configuración están en:
+=~/.config/goose/=
+
+- =config.yaml= - configuración principal
+- =history.txt= - historial de comandos
+
+** Versiones utilizadas
+
+- Node.js: v24.9.0
+- npm: 11.6.0
+
+** Notas importantes
+
+- El soporte oficial llegó con [[https://github.com/block/goose/pull/3890][PR #3890]]
+- Termux usa Bionic libc en lugar de glibc
+- Para herramientas que requieren glibc (como babashka), usar glibc-runner
+- Los paths de Termux son diferentes a Linux tradicional: =/data/data/com.termux/files/=
