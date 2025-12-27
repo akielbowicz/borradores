@@ -37,22 +37,32 @@ ida = 'zk new --no-input ideas --title "$@"'
 # Grupo de templates por directorio
 [group.til]
 paths = ["hoy-aprendi"]
+
+[group.til.note]
 template = "til.org"
 
 [group.mch]
 paths = ["machetes"]
+
+[group.mch.note]
 template = "mch.org"
 
 [group.exp]
 paths = ["exploraciones"]
+
+[group.exp.note]
 template = "exp.org"
 
 [group.tiw]
 paths = ["quiero"]
+
+[group.tiw.note]
 template = "tiw.org"
 
 [group.ida]
 paths = ["ideas"]
+
+[group.ida.note]
 template = "ida.org"
 
 # Configuración del editor

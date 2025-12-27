@@ -11,35 +11,35 @@ _commit path mensaje:
 # Crear una nota TIL (Today I Learned / Hoy aprendí)
 til titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input hoy-aprendi --title "{{titulo}}" --print-path)
+    note_path=$(zk new --no-input -g til hoy-aprendi --title "{{titulo}}" --print-path)
     zk edit "$note_path"
     just _commit "$note_path" "Agregar TIL: {{titulo}}"
 
 # Crear un machete (cheat sheet)
 mch titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input machetes --title "{{titulo}}" --print-path)
+    note_path=$(zk new --no-input -g mch machetes --title "{{titulo}}" --print-path)
     zk edit "$note_path"
     just _commit "$note_path" "Agregar machete: {{titulo}}"
 
 # Crear una exploración
 exp titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input exploraciones --title "{{titulo}}" --print-path)
+    note_path=$(zk new --no-input -g exp exploraciones --title "{{titulo}}" --print-path)
     zk edit "$note_path"
     just _commit "$note_path" "Agregar exploración: {{titulo}}"
 
 # Crear una nota de "quiero" (things I want)
 tiw titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input quiero --title "{{titulo}}" --print-path)
+    note_path=$(zk new --no-input -g tiw quiero --title "{{titulo}}" --print-path)
     zk edit "$note_path"
     just _commit "$note_path" "Agregar cosa que quiero: {{titulo}}"
 
 # Crear una idea
 ida titulo:
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input ideas --title "{{titulo}}" --print-path)
+    note_path=$(zk new --no-input -g ida ideas --title "{{titulo}}" --print-path)
     zk edit "$note_path"
     just _commit "$note_path" "Agregar idea: {{titulo}}"
 
@@ -48,15 +48,15 @@ ai-note categoria titulo contenido:
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{categoria}}" in
-        til) dir="hoy-aprendi";;
-        mch) dir="machetes";;
-        exp) dir="exploraciones";;
-        tiw) dir="quiero";;
-        ida) dir="ideas";;
+        til) dir="hoy-aprendi"; group="til";;
+        mch) dir="machetes"; group="mch";;
+        exp) dir="exploraciones"; group="exp";;
+        tiw) dir="quiero"; group="tiw";;
+        ida) dir="ideas"; group="ida";;
         *) echo "Categoría no válida. Usa: til, mch, exp, tiw, ida"; exit 1;;
     esac
     echo "Generando nota con IA..."
-    note_path=$(zk new --no-input "$dir" --title "{{titulo}}" --print-path)
+    note_path=$(zk new --no-input -g "$group" "$dir" --title "{{titulo}}" --print-path)
     if command -v claude &> /dev/null; then
         prompt="Crea una nota en formato org-mode sobre: {{contenido}}. Usa el título: {{titulo}}. Incluye secciones relevantes y contenido útil."
         claude --model sonnet-4.5 "$prompt" >> "$note_path"
