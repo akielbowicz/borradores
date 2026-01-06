@@ -42,6 +42,14 @@ En ORG-MODE
 =C-c C-c= para hacer toggle de los items - [ ] -> - [X]
 =C-c C-t= para cambiar el estado de una sección TODO -> DONE -> BLOCKED ....
 
+Para seleccionar bloques de texto uso los comandos de evil-sorround
+
+vif o vaf
+
+4. Configs extras
+
+Tuve que configurar el er/expand-region de evil-sorround para que pueda expandir la selección
+
 ** Conclusiones
 
 Me sorprendió lo accesible que es doom-mode con which-key, es fácil enconctrar las cosas y también anda
