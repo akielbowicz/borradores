@@ -1,0 +1,49 @@
+#+title: moviendome en doom-emacs para julia y org
+#+date: 2026-01-05
+
+* moviendome en doom-emacs para julia y org
+
+** Contexto
+
+Para el sciml-warm-up donde estoy repasando las apis de SciML para tener un poco
+más de agilidad y conocer los parámetros, limitaciones y cosas por el estilo.
+
+** Exploración
+
+Comenzando con la configuración del ambiente de julia para usarlo desde emacs con doom.
+fue bastante más sencillo de lo que esperaba
+
+1. instalar el language server de julia en el ambiente global
+
+#+begin_src sh
+julia -e "import Pkg;Pkg.add("LanguageServer")"
+#+end_src
+
+2. configurar el LSP con eglot en el ~/.doom.d/config.el
+
+#+begin_src
+TBD
+#+end_src
+
+Para iniciar el REPL dentro de un archivo .jl hacer =SPC o r=
+
+3. Aprender un par de hotkeys
+
+Para moverme entre ventanas =SPC w (w|h|j)=
+
+Para mandar código al REPL =C-c C-c=
+
+Para cambiar de buffers hay un millón y media formas de hacerlo pero con =SPC <= parecería que es lo más rápido
+
+Tambien =SPC .=
+
+En ORG-MODE
+
+=C-c C-c= para hacer toggle de los items - [ ] -> - [X]
+=C-c C-t= para cambiar el estado de una sección TODO -> DONE -> BLOCKED ....
+
+** Conclusiones
+
+Me sorprendió lo accesible que es doom-mode con which-key, es fácil enconctrar las cosas y también anda
+sorprendentemente rápido a comparación con spacemacs
+
