@@ -8,40 +8,110 @@ _commit path mensaje:
     @git push
     @echo "Nota sincronizada: {{path}}"
 
-# Crear una nota TIL (Today I Learned / Hoy aprendí)
-til titulo:
+# Crear una nota TIL (Today I Learned / Hoy aprendí) o editar la última
+til titulo="":
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input -g til hoy-aprendi --title "{{titulo}}" --print-path)
-    zk edit "$note_path"
-    just _commit "$note_path" "Agregar TIL: {{titulo}}"
+    if [ -z "{{titulo}}" ]; then
+        # Editar la última nota TIL
+        note_path=$(zk list hoy-aprendi --sort created- --limit 1 --format path)
+        if [ -n "$note_path" ]; then
+            zk edit "$note_path"
+            just _commit "$note_path" "Actualizar TIL: $(basename $note_path .org)"
+        else
+            echo "No se encontraron notas TIL."
+            echo "Uso: just til \"título de la nota\""
+            exit 1
+        fi
+    else
+        # Crear nueva nota TIL
+        note_path=$(zk new --no-input -g til hoy-aprendi --title "{{titulo}}" --print-path)
+        zk edit "$note_path"
+        just _commit "$note_path" "Agregar TIL: {{titulo}}"
+    fi
 
-# Crear un machete (cheat sheet)
-mch titulo:
+# Crear un machete (cheat sheet) o editar el último
+mch titulo="":
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input -g mch machetes --title "{{titulo}}" --print-path)
-    zk edit "$note_path"
-    just _commit "$note_path" "Agregar machete: {{titulo}}"
+    if [ -z "{{titulo}}" ]; then
+        # Editar el último machete
+        note_path=$(zk list machetes --sort created- --limit 1 --format path)
+        if [ -n "$note_path" ]; then
+            zk edit "$note_path"
+            just _commit "$note_path" "Actualizar machete: $(basename $note_path .org)"
+        else
+            echo "No se encontraron machetes."
+            echo "Uso: just mch \"título del machete\""
+            exit 1
+        fi
+    else
+        # Crear nuevo machete
+        note_path=$(zk new --no-input -g mch machetes --title "{{titulo}}" --print-path)
+        zk edit "$note_path"
+        just _commit "$note_path" "Agregar machete: {{titulo}}"
+    fi
 
-# Crear una exploración
-exp titulo:
+# Crear una exploración o editar la última
+exp titulo="":
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input -g exp exploraciones --title "{{titulo}}" --print-path)
-    zk edit "$note_path"
-    just _commit "$note_path" "Agregar exploración: {{titulo}}"
+    if [ -z "{{titulo}}" ]; then
+        # Editar la última exploración
+        note_path=$(zk list exploraciones --sort created- --limit 1 --format path)
+        if [ -n "$note_path" ]; then
+            zk edit "$note_path"
+            just _commit "$note_path" "Actualizar exploración: $(basename $note_path .org)"
+        else
+            echo "No se encontraron exploraciones."
+            echo "Uso: just exp \"título de la exploración\""
+            exit 1
+        fi
+    else
+        # Crear nueva exploración
+        note_path=$(zk new --no-input -g exp exploraciones --title "{{titulo}}" --print-path)
+        zk edit "$note_path"
+        just _commit "$note_path" "Agregar exploración: {{titulo}}"
+    fi
 
-# Crear una nota de "quiero" (things I want)
-tiw titulo:
+# Crear una nota de "quiero" (things I want) o editar la última
+tiw titulo="":
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input -g tiw quiero --title "{{titulo}}" --print-path)
-    zk edit "$note_path"
-    just _commit "$note_path" "Agregar cosa que quiero: {{titulo}}"
+    if [ -z "{{titulo}}" ]; then
+        # Editar la última nota "quiero"
+        note_path=$(zk list quiero --sort created- --limit 1 --format path)
+        if [ -n "$note_path" ]; then
+            zk edit "$note_path"
+            just _commit "$note_path" "Actualizar cosa que quiero: $(basename $note_path .org)"
+        else
+            echo "No se encontraron notas 'quiero'."
+            echo "Uso: just tiw \"título de la nota\""
+            exit 1
+        fi
+    else
+        # Crear nueva nota "quiero"
+        note_path=$(zk new --no-input -g tiw quiero --title "{{titulo}}" --print-path)
+        zk edit "$note_path"
+        just _commit "$note_path" "Agregar cosa que quiero: {{titulo}}"
+    fi
 
-# Crear una idea
-ida titulo:
+# Crear una idea o editar la última
+ida titulo="":
     #!/usr/bin/env bash
-    note_path=$(zk new --no-input -g ida ideas --title "{{titulo}}" --print-path)
-    zk edit "$note_path"
-    just _commit "$note_path" "Agregar idea: {{titulo}}"
+    if [ -z "{{titulo}}" ]; then
+        # Editar la última idea
+        note_path=$(zk list ideas --sort created- --limit 1 --format path)
+        if [ -n "$note_path" ]; then
+            zk edit "$note_path"
+            just _commit "$note_path" "Actualizar idea: $(basename $note_path .org)"
+        else
+            echo "No se encontraron ideas."
+            echo "Uso: just ida \"título de la idea\""
+            exit 1
+        fi
+    else
+        # Crear nueva idea
+        note_path=$(zk new --no-input -g ida ideas --title "{{titulo}}" --print-path)
+        zk edit "$note_path"
+        just _commit "$note_path" "Agregar idea: {{titulo}}"
+    fi
 
 # Crear nota con IA - pasale el contenido y la categoría
 ai-note categoria titulo contenido:
