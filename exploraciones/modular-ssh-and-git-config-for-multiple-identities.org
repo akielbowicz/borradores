@@ -1,5 +1,6 @@
 #+TITLE: Modular SSH and Git config for multiple identities
 #+DATE: 2025-12-23
+#+UPDATED: 2026-01-06
 
 * Problem
 
@@ -20,23 +21,23 @@ Instead of a monolithic =~/.ssh/config=, use:
 ~/.ssh/
 ├── config          # just "Include profiles/*"
 └── profiles/
-    ├── ak
-    ├── sk
-    ├── ch
-    └── ph
+    ├── personal
+    ├── work
+    ├── org1
+    └── org2
 #+END_SRC
 
 Each profile file contains:
 
 #+BEGIN_SRC conf
-Host ak
+Host p1
     HostName ssh.github.com
     Port 443
-    User akielbowicz
-    IdentityFile ~/.ssh/id_ak
+    User personal-user
+    IdentityFile ~/.ssh/id_personal
 #+END_SRC
 
-** Git Config: URL rewriting + hasconfig
+** Git Config: URL rewriting + directory matching
 
 The =~/.gitconfig= now has two parts:
 
@@ -45,39 +46,45 @@ The =~/.gitconfig= now has two parts:
 Maps GitHub usernames to SSH host aliases:
 
 #+BEGIN_SRC gitconfig
-[url "git@ak:akielbowicz/"]
-    insteadOf = "https://github.com/akielbowicz/"
-    insteadOf = "git@github.com:akielbowicz/"
+[url "git@p1:personal-user/"]
+    insteadOf = "https://github.com/personal-user/"
+    insteadOf = "git@github.com:personal-user/"
 #+END_SRC
 
 This allows cloning with regular GitHub URLs while automatically using the correct SSH key.
 
-*** Identity Selection via hasconfig (Git 2.36+)
+*** Identity Selection via Directory Matching
 
-Instead of matching by directory, match by remote URL:
+*UPDATE 2026-01-06*: Changed from URL-based matching to directory-based matching.
+
+Instead of matching by remote URL, match by repository directory:
 
 #+BEGIN_SRC gitconfig
-[includeIf "hasconfig:remote.*.url:git@ak:*/**"]
-    path = ~/.config/git/profiles/ak
+[includeIf "gitdir:~/dev/personal/"]
+    path = ~/.config/git/profiles/personal
+
+[includeIf "gitdir:~/dev/work/"]
+    path = ~/.config/git/profiles/work
 #+END_SRC
 
-*Important*: The glob pattern must be =*/**= not just =**=. The =**= pattern requires a =/= path separator to match, but SSH URLs have the format =git@host:Org/repo.git= (no slash after the colon). Using =*/**= correctly matches =Org/repo.git=.
+This approach organizes repositories by profile in the filesystem, making identity selection explicit and reliable.
 
 Profile files live in =~/.config/git/profiles/= and contain only user info:
 
 #+BEGIN_SRC gitconfig
 [user]
-    name = "akielbowicz"
-    email = "augusto.kiel@gmail.com"
+    name = "Your Name"
+    email = "your.email@example.com"
 #+END_SRC
 
 * Benefits
 
-- *Clone from anywhere*: =git clone https://github.com/akielbowicz/repo= uses the correct key automatically
-- *No directory restrictions*: repos can live anywhere, identity is determined by remote URL
-- *Easy to add new identities*: just add files to =~/.ssh/profiles/= and =~/.config/git/profiles/=
+- *Clone from anywhere*: =git clone https://github.com/username/repo= uses the correct key automatically
+- *Organized filesystem*: repos are grouped by profile, making it easy to see which identity owns what
+- *Easy to add new identities*: just add files to =~/.ssh/profiles/= and =~/.config/git/profiles/=, and a =gitdir= include
 - *Modular*: each identity is self-contained in its own files
-- *No per-directory .gitconfig files needed*: the URL-based matching eliminates the need for .gitconfig files in each workspace directory
+- *Reliable identity detection*: directory-based matching works regardless of URL format (HTTPS or SSH)
+- *No per-directory .gitconfig files needed*: one =gitdir= include per profile covers all repos in that directory tree
 
 * File Locations
 
@@ -87,5 +94,65 @@ Profile files live in =~/.config/git/profiles/= and contain only user info:
 | Git profiles | =~/.config/git/profiles/*= |
 | Main git config | =~/.gitconfig= |
 | Main SSH config | =~/.ssh/config= |
+
+* Repository URL Standard
+
+All repositories should store HTTPS URLs in their =.git/config=:
+
+#+BEGIN_SRC
+[remote "origin"]
+    url = https://github.com/username/repo.git
+#+END_SRC
+
+The URL rewriting rules in =~/.gitconfig= automatically convert these to SSH at runtime:
+
+#+BEGIN_SRC
+$ git remote get-url origin
+git@alias:username/repo.git
+#+END_SRC
+
+This means:
+- Stored URL (in =.git/config=): =https://github.com/username/repo.git=
+- Runtime URL (what git uses): =git@alias:username/repo.git=
+
+* Update History
+
+** 2026-01-06: Changed to Directory-Based Identity Selection
+
+*Previous approach*: Used =hasconfig:remote.*.url:git@alias:*/**= to match repositories by remote URL.
+
+*Problem discovered*: The =hasconfig= condition checks the URL stored in =.git/config= *before* URL rewriting happens. Since repositories store HTTPS URLs (=https://github.com/username/...=), the pattern looking for SSH aliases (=git@alias:*/**=) never matched.
+
+*Solution*: Changed to directory-based matching using =gitdir:/path/to/profile/=. This approach:
+- Works regardless of whether repos use HTTPS or SSH URLs
+- Leverages filesystem organization (repos grouped by profile in directories)
+- Is more explicit and easier to understand
+- Eliminates the timing issue between URL rewriting and conditional includes
+
+*Migration steps*:
+1. Changed =includeIf= conditions from =hasconfig:remote.*.url:= to =gitdir:= patterns
+2. Standardized all repository URLs to HTTPS format
+3. Removed local =user.name= and =user.email= configs from individual repositories
+4. Organized =~/.gitconfig= to group each profile's URL rewriting and =includeIf= together
+
+*Example =~/.gitconfig= structure*:
+
+#+BEGIN_SRC gitconfig
+# Profile configurations - grouped by profile, sorted alphabetically
+
+# profile1 (personal)
+[url "git@p1:personal-user/"]
+    insteadOf = "https://github.com/personal-user/"
+    insteadOf = "git@github.com:personal-user/"
+[includeIf "gitdir:~/dev/personal/"]
+    path = ~/.config/git/profiles/profile1
+
+# profile2 (work)
+[url "git@p2:work-user/"]
+    insteadOf = "https://github.com/work-user/"
+    insteadOf = "git@github.com:work-user/"
+[includeIf "gitdir:~/dev/work/"]
+    path = ~/.config/git/profiles/profile2
+#+END_SRC
 
 
