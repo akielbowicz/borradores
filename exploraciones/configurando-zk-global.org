@@ -20,3 +20,11 @@ Después en otro repo tengo que configurar los siguientes
 Quizas lo mejor es tener en cada repo los templates y aliases de los comandos y después crear un justfile global
 con un alias apuntando a cada uno. Esto para poder hacerlo más dinámico y que commitee y pushee los cambios de manera
 rápida cada vez que salga del editor
+
+* Implementación
+
+Esto ya está implementado:
+- El justfile tiene comandos para humanos (interactivos) y para agentes (no interactivos)
+- Los comandos para agentes son =note-from-file= y =note-stdin=
+- Ver [[file:agent-agnostic-commands-config.org][Agent-Agnostic Commands Configuration]] para el patrón general
+- Ver [[file:humanlayer-commands-workflow.org][HumanLayer Commands Workflow]] para los comandos de investigación/planificación
