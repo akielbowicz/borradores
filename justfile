@@ -113,27 +113,49 @@ ida titulo="":
         just _commit "$note_path" "Agregar idea: {{titulo}}"
     fi
 
-# Crear nota con IA - pasale el contenido y la categoría
-ai-note categoria titulo contenido:
+# Agent-friendly: create note from file (no editor, no zk)
+# Usage: just note-from-file exp my-note.org "Commit message"
+note-from-file categoria archivo mensaje="":
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{categoria}}" in
-        til) dir="hoy-aprendi"; group="til";;
-        mch) dir="machetes"; group="mch";;
-        exp) dir="exploraciones"; group="exp";;
-        tiw) dir="quiero"; group="tiw";;
-        ida) dir="ideas"; group="ida";;
+        til) dir="hoy-aprendi";;
+        mch) dir="machetes";;
+        exp) dir="exploraciones";;
+        tiw) dir="quiero";;
+        ida) dir="ideas";;
         *) echo "Categoría no válida. Usa: til, mch, exp, tiw, ida"; exit 1;;
     esac
-    echo "Generando nota con IA..."
-    note_path=$(zk new --no-input -g "$group" "$dir" --title "{{titulo}}" --print-path)
-    if command -v claude &> /dev/null; then
-        prompt="Crea una nota en formato org-mode sobre: {{contenido}}. Usa el título: {{titulo}}. Incluye secciones relevantes y contenido útil."
-        claude --model sonnet-4.5 "$prompt" >> "$note_path"
-    else
-        echo -e "\n** Contenido\n\n{{contenido}}" >> "$note_path"
-    fi
-    just _commit "$note_path" "Agregar nota IA: {{titulo}}"
+    filename=$(basename "{{archivo}}")
+    dest="$dir/$filename"
+    cp "{{archivo}}" "$dest"
+    msg="${mensaje:-Agregar $categoria: $filename}"
+    just _commit "$dest" "$msg"
+
+# Agent-friendly: pipe content to create note
+# Usage: echo "content" | just note-stdin exp my-title
+note-stdin categoria titulo:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{categoria}}" in
+        til) dir="hoy-aprendi";;
+        mch) dir="machetes";;
+        exp) dir="exploraciones";;
+        tiw) dir="quiero";;
+        ida) dir="ideas";;
+        *) echo "Categoría no válida. Usa: til, mch, exp, tiw, ida"; exit 1;;
+    esac
+    # Convert title to kebab-case filename
+    filename=$(echo "{{titulo}}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-').org
+    dest="$dir/$filename"
+    # Read from stdin and create file with frontmatter
+    {
+        echo "#+TITLE: {{titulo}}"
+        echo "#+DATE: $(date +%Y-%m-%d)"
+        echo ""
+        cat
+    } > "$dest"
+    just _commit "$dest" "Agregar $categoria: {{titulo}}"
 
 # Editar una nota (usa zk edit con búsqueda interactiva)
 edit query="":
@@ -169,14 +191,23 @@ search query:
 # Ayuda - mostrar comandos disponibles
 help:
     @echo "Comandos disponibles:"
+    @echo ""
+    @echo "  HUMAN (interactive, opens editor):"
     @echo "  just til TITULO          - Crear TIL"
     @echo "  just mch TITULO          - Crear machete"
     @echo "  just exp TITULO          - Crear exploración"
     @echo "  just tiw TITULO          - Crear 'quiero'"
     @echo "  just ida TITULO          - Crear idea"
-    @echo "  just ai-note CAT TITULO CONTENIDO - Crear nota con IA"
-    @echo "  just edit [QUERY]        - Editar nota (interactivo o por búsqueda)"
-    @echo "  just sync [MENSAJE]      - Sincronizar cambios"
+    @echo "  just edit [QUERY]        - Editar nota"
+    @echo ""
+    @echo "  AGENT (non-interactive, for AI agents):"
+    @echo "  just note-from-file CAT FILE [MSG]  - Copy file to category and sync"
+    @echo "  cat file | just note-stdin CAT TITLE - Pipe content to new note"
+    @echo "  just sync [MENSAJE]                  - Sync pending changes"
+    @echo ""
+    @echo "  SHARED:"
     @echo "  just status              - Ver estado git"
     @echo "  just list [FILTRO]       - Listar notas recientes"
     @echo "  just search QUERY        - Buscar notas por contenido"
+    @echo ""
+    @echo "  Categories (CAT): til, mch, exp, tiw, ida"
