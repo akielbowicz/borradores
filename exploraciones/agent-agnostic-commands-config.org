@@ -1,0 +1,73 @@
+#+TITLE: Agent-Agnostic Commands Configuration
+#+DATE: 2026-01-11
+#+FILETAGS: :agents:commands:configuration:
+
+* Overview
+
+When working with AI coding agents like Claude, Amp, or others, each tool expects commands/prompts in specific locations (e.g., =.claude/commands/=). To avoid vendor lock-in and maintain a single source of truth, we can use an agent-agnostic approach.
+
+* The Pattern
+
+** 1. Store commands in a generic location
+
+Keep all command files in a vendor-neutral directory:
+
+#+BEGIN_SRC
+.agents/
+└── commands/
+    ├── research_codebase.md
+    ├── create_plan.md
+    └── implement_plan.md
+#+END_SRC
+
+** 2. Symlink to agent-specific locations
+
+Use symlinks to expose commands where each agent expects them:
+
+#+BEGIN_SRC bash
+# For Claude
+mkdir -p .claude
+ln -sfn ../.agents/commands .claude/commands
+#+END_SRC
+
+** 3. Automate with just
+
+Create a justfile recipe to set up symlinks:
+
+#+BEGIN_SRC just
+# Symlink .agents/commands to .claude/commands for Claude compatibility
+setup-claude:
+    mkdir -p .claude
+    ln -sfn ../.agents/commands .claude/commands
+    @echo "Symlinked .agents/commands → .claude/commands"
+#+END_SRC
+
+* Benefits
+
+- *Single source of truth*: Edit commands in one place
+- *Version control friendly*: Only track =.agents/=, gitignore agent-specific dirs
+- *Easy to extend*: Add new agents by creating additional symlinks
+- *Portable*: Commands aren't tied to any specific agent's conventions
+
+* Extending for other agents
+
+#+BEGIN_SRC just
+setup-amp:
+    mkdir -p .amp
+    ln -sfn ../.agents/commands .amp/commands
+
+setup-all: setup-claude setup-amp
+#+END_SRC
+
+* Gitignore consideration
+
+You may want to gitignore the agent-specific directories and only track the source:
+
+#+BEGIN_SRC gitignore
+# Agent-specific (symlinked)
+.claude/
+.amp/
+
+# Source of truth (tracked)
+!.agents/
+#+END_SRC
