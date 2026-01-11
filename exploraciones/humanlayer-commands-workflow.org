@@ -1,0 +1,85 @@
+#+TITLE: HumanLayer Commands Workflow
+#+DATE: 2026-01-11
+#+FILETAGS: :agents:humanlayer:commands:context-engineering:
+
+* Overview
+
+HumanLayer publishes a set of Claude commands that implement an "Advanced Context Engineering" (ACE) workflow. These commands structure agent work into three phases: research, planning, and implementation.
+
+* Source
+
+- Repository: https://github.com/humanlayer/humanlayer/tree/main/.claude/commands
+- Video talk: https://www.youtube.com/watch?v=42AzKZRNhsk
+- ACE document: https://github.com/humanlayer/advanced-context-engineering-for-coding-agents/blob/main/ace-fca.md
+
+* The Three Commands
+
+** research_codebase.md
+
+*Purpose*: Document the codebase as-is without suggesting improvements.
+
+Key principles:
+- Spawns parallel sub-agents to research different aspects
+- Uses specialized agents: codebase-locator, codebase-analyzer, pattern-finder
+- Documents what EXISTS, not what SHOULD BE
+- Outputs structured research documents with file:line references
+- Syncs findings to a shared thoughts directory
+
+** create_plan.md
+
+*Purpose*: Create detailed implementation plans through interactive iteration.
+
+Key principles:
+- Read all mentioned files FULLY before spawning sub-tasks
+- Be skeptical - question vague requirements
+- Be interactive - get buy-in at each step
+- No open questions in final plan - resolve everything first
+- Separate success criteria into automated vs manual verification
+- Output to =thoughts/shared/plans/YYYY-MM-DD-description.md=
+
+** implement_plan.md
+
+*Purpose*: Execute approved plans phase by phase.
+
+Key principles:
+- Read the plan completely first
+- Follow the plan's intent while adapting to reality
+- Update checkboxes as you complete sections
+- Pause after each phase for human manual verification
+- If mismatch found, STOP and present the issue clearly
+
+* Core Philosophy: Frequent Intentional Compaction
+
+From the ACE document:
+
+#+BEGIN_QUOTE
+LLMs are stateless functions. The only thing that affects the quality of your output is the quality of the inputs.
+#+END_QUOTE
+
+The workflow addresses AI limitations in complex codebases by:
+
+1. *Compacting context*: Distilling searches, code understanding, and logs into structured artifacts
+2. *Phased approach*: Research → Plan → Implement keeps each phase focused
+3. *Human checkpoints*: Manual verification between phases catches issues early
+4. *Spec-driven development*: Plans become the source of truth, not just the code
+
+* Why This Works
+
+Traditional "vibe coding" problems:
+- Context window fills up with searches and logs
+- Agent loses track of the goal
+- Produces "slop" that needs rework
+
+ACE approach:
+- Keep context utilization in 40-60% range
+- Build high-leverage human review at key points
+- Structured artifacts persist knowledge across sessions
+
+* Adapting for Fabbro
+
+We store these commands in =.agents/commands/= and symlink to =.claude/commands/= for agent-agnostic usage. See [[file:agent-agnostic-commands-config.org][Agent-Agnostic Commands Configuration]].
+
+The commands reference HumanLayer-specific tooling (=humanlayer thoughts sync=, Linear integration). For fabbro, we'd adapt:
+- Use =bd= for task tracking instead of Linear
+- Use git directly for syncing research/plans
+- Store artifacts in project-local directories
