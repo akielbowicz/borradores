@@ -71,3 +71,7 @@ You may want to gitignore the agent-specific directories and only track the sour
 # Source of truth (tracked)
 !.agents/
 #+END_SRC
+
+* See also
+
+- [[file:humanlayer-commands-workflow.org][HumanLayer Commands Workflow]] - the specific commands we're using with this pattern
