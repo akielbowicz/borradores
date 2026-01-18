@@ -1,0 +1,54 @@
+#+title: Telegram Bookmark Bot with Cloudflare Workers
+#+date: 2026-01-18
+#+filetags: :cloudflare:workers:telegram:hono:cheerio:
+
+Built a Cloudflare Worker that saves URLs sent via Telegram to a GitHub repository as bookmarks.
+
+* Stack
+
+- *Hono* - Lightweight web framework for the Worker
+- *Cheerio* - HTML parsing for metadata extraction (og:tags, title, description)
+- *Octokit* - GitHub API client for saving bookmarks to a JSONL file
+- *KV* - Cloudflare's key-value store for retry queue
+
+* Key Learnings
+
+** Metascraper doesn't work in Workers
+
+It uses =worker_threads= which isn't supported. Switched to cheerio for direct HTML parsing instead.
+
+** Wrangler compatibility flags
+
+=node_compat= is deprecated. Use =compatibility_flags = ["nodejs_compat"]= in wrangler.toml.
+
+** Telegram webhook verification
+
+Telegram sends a secret token in the =X-Telegram-Bot-Api-Secret-Token= header that you set when registering the webhook.
+
+** GitHub file updates need SHA
+
+To update a file via GitHub API, you must provide the current SHA. Handle 409 conflicts with retry logic for concurrent writes.
+
+* Architecture
+
+#+begin_src
+Telegram → POST /webhook → Extract URL → Fetch metadata → Save to GitHub
+                                              ↓ (on failure)
+                                         Queue to KV → Cron retries hourly
+#+end_src
+
+* Useful Commands
+
+#+begin_src bash
+# Local dev
+npx wrangler dev
+
+# Deploy
+npx wrangler deploy
+
+# Set secrets
+npx wrangler secret put SECRET_NAME
+
+# Create KV namespace
+npx wrangler kv namespace create NAMESPACE_NAME
+#+end_src
