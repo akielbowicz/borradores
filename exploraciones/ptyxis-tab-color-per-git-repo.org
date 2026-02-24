@@ -1,0 +1,180 @@
+#+title: ptyxis tab color per git repo
+#+date: 2026-02-24
+
+* ptyxis tab color per git repo
+
+** Contexto
+
+Ptyxis 49.2 en Fedora/Bluefin. Con muchos tabs abiertos en distintos repos es
+difícil saber cuáles están relacionados. Queríamos que los tabs se colorearan
+automáticamente según el repositorio git, usando fish y nushell.
+
+** Exploración
+
+*** DBus API
+
+Lo primero fue ver qué expone Ptyxis por DBus:
+
+#+BEGIN_SRC sh
+gdbus introspect --session --dest org.gnome.Ptyxis --object-path /org/gnome/Ptyxis
+#+END_SRC
+
+Expone =org.gtk.Actions= con estas acciones disponibles:
+- =preferences=, =new-tab=, =about=, =focus-tab-by-uuid=, =new-window=, =edit-profile=
+
+En la ventana (=/org/gnome/Ptyxis/window/1=) solo hay dos acciones:
+=tab.read-only= e =interface-style=. No hay nada para setear color de tab.
+
+*** GSettings / dconf
+
+#+BEGIN_SRC sh
+dconf dump /org/gnome/Ptyxis/
+#+END_SRC
+
+El schema de perfiles tiene clave =palette= (nombre de paleta) pero no hay
+ninguna clave de "color de tab" por pestaña. Las claves son globales al perfil.
+
+El menú contextual del tab (clic derecho sobre la pestaña) en Ptyxis 49.2 solo
+tiene: Move Left/Right, Move to New Window, Pin/Unpin, Set Title, Close. *No hay
+"Set Color"* — esa feature no llegó aún a esta versión.
+
+*** VTE Termprops (OSC 666)
+
+Inspeccionando =strings /usr/lib64/libvte-2.91.so.0.8200.3=, VTE 0.82 expone
+estas termprops:
+
+#+BEGIN_SRC
+vte.container.name
+vte.container.runtime
+vte.container.uid
+vte.cwd
+vte.cwf
+vte.icon.color       ← RGBA color para el ícono del tab
+vte.icon.image
+vte.progress.hint
+vte.progress.value
+vte.shell.postexec
+vte.shell.precmd
+vte.shell.preexec
+#+END_SRC
+
+=vte.icon.color= es una termprop de tipo RGBA. Para setearla desde la shell se
+usa *OSC 666*, el mismo mecanismo que usa =/etc/profile.d/vte.sh= para
+=vte.shell.precmd= etc.:
+
+#+BEGIN_SRC sh
+# Setear color
+printf '\033]666;vte.icon.color=#3498db\033\\'
+
+# Resetear (sin valor)
+printf '\033]666;vte.icon.color\033\\'
+#+END_SRC
+
+El valor acepta cualquier string que parsee =gdk_rgba_parse()=: =#rrggbb=,
+=#rrggbbaa=, nombres CSS, =rgba(r,g,b,a)=.
+
+**** Formato general de OSC 666
+
+De =/etc/profile.d/vte.sh=:
+
+#+BEGIN_SRC bash
+__vte_termprop_set()   { printf '\033]666;%s=%s\033\\' "$1" "$2"; }
+__vte_termprop_signal(){ printf '\033]666;%s!\033\\'   "$1";      }
+__vte_termprop_reset() { printf '\033]666;%s\033\\'    "$1";      }
+#+END_SRC
+
+*** Lo que Ptyxis 49.2 realmente escucha
+
+El XML de UI embebido en el binario de Ptyxis muestra todos los handlers de
+termprops que tiene conectados:
+
+#+BEGIN_SRC xml
+<signal name="termprop-changed::vte.container.name"
+        handler="ptyxis_tab_invalidate_icon"/>
+<signal name="termprop-changed::vte.container.runtime"
+        handler="ptyxis_tab_invalidate_icon"/>
+<signal name="termprop-changed::vte.progress.hint"
+        handler="ptyxis_tab_invalidate_progress"/>
+<signal name="termprop-changed::vte.progress.value"
+        handler="ptyxis_tab_invalidate_progress"/>
+#+END_SRC
+
+*No hay handler para =vte.icon.color=.* La función =ptyxis_tab_dup_indicator_icon=
+construye el ícono del tab basándose solo en progreso y tipo de contenedor;
+no lee =vte.icon.color= en esta versión. =strings /usr/bin/ptyxis= confirma:
+cero menciones del string ="vte.icon.color"=.
+
+*** Resumen de mecanismos evaluados
+
+| Mecanismo | ¿Funciona en Ptyxis 49.2? |
+|-----------+--------------------------|
+| DBus tab color API | No existe |
+| GSettings tab color key | No existe |
+| =vte.icon.color= via OSC 666 | VTE lo almacena, Ptyxis no reacciona |
+| =vte.progress.hint= (OSC 9;4) | Sí, pero solo 4 estados fijos |
+| Emoji en título del tab | ✓ Funciona hoy |
+
+*** Solución implementada
+
+Dado que no hay API nativa, la solución tiene dos capas:
+
+**** Capa visual (funciona hoy)
+
+Colorear el título del tab con un emoji de círculo determinístico. El índice
+se elige hasheando la ruta absoluta del repo (=md5sum= → primeros 2 hex → =mod 8=):
+
+| Índice | Emoji | Color hex |
+|--------+-------+-----------|
+| 0 | 🔴 | =#e74c3c= |
+| 1 | 🟠 | =#e67e22= |
+| 2 | 🟡 | =#f1c40f= |
+| 3 | 🟢 | =#2ecc71= |
+| 4 | 🔵 | =#3498db= |
+| 5 | 🟣 | =#9b59b6= |
+| 6 | 🩵 | =#00bcd4= |
+| 7 | 🟤 | =#795548= |
+
+El mismo repo siempre produce el mismo emoji en cualquier sesión y shell.
+
+**** Capa futura (Ptyxis 50+)
+
+Se envía =vte.icon.color= via OSC 666 en cada cambio de directorio. Cuando
+Ptyxis agregue el handler, los puntos de color aparecerán automáticamente sin
+modificar nada en la config del shell.
+
+**** Archivos creados
+
+Fish:
+- =~/.config/fish/conf.d/ptyxis_tab_color.fish= — hook =--on-variable PWD=,
+  cachea =$_ptyxis_repo_emoji= y envía OSC 666.
+- =~/.config/fish/functions/fish_title.fish= — prefija el título del tab con
+  el emoji cacheado.
+
+Nushell:
+- =~/.config/nushell/ptyxis_tab_color.nu= — hook =env_change.PWD= para el
+  emoji/OSC 666 + hook =pre_prompt= para el título. Deshabilita =osc2= built-in
+  para evitar que sobreescriba el título.
+- Sourced desde =config.nu=.
+
+** Referencias
+
+- [[https://blogs.gnome.org/chergert/2024/12/03/ptyxis-progress-support/][Ptyxis Progress Support (OSC 9;4) — GNOME Blog]]
+- [[https://github.com/kovidgoyal/kitty/discussions/8375][OSC 666 parse error en Kitty — muestra el formato de VTE termprops]]
+- [[https://gnome.pages.gitlab.gnome.org/vte/gtk4/index.html][VTE GTK4 API docs — termprops]]
+- [[https://devsuite.app/ptyxis/][Ptyxis — sitio oficial]]
+- =/etc/profile.d/vte.sh= — integración de shell de VTE en Fedora, fuente del
+  formato OSC 666
+
+** Conclusiones
+
+- Ptyxis 49.2 no tiene API para colorear tabs individualmente desde la shell.
+- VTE 0.82 sí tiene la termprop =vte.icon.color= pero Ptyxis no la consume aún.
+- La solución con emoji en el título es suficientemente visible y funciona ya.
+- Enviar OSC 666 igualmente es "gratis": cuando Ptyxis lo soporte, los colores
+  nativos aparecerán solos sin tocar la config.
+
+** Próximos pasos
+
+- [ ] Cuando salga Ptyxis 50, verificar si =vte.icon.color= ya tiene handler
+      (buscar =termprop-changed::vte.icon.color= en el binario)
+- [ ] Si Ptyxis agrega "Set Color" al menú del tab, evaluar migrar a eso
