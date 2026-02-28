@@ -1,0 +1,127 @@
+#+title: Ramalama en Framework 13 con 64GB
+#+date: 2026-02-27
+
+* Ramalama en Framework 13 con 64GB
+
+** Contexto
+
+Framework 13 con Ryzen 7 7840U y 64GB DDR5, corriendo Bluefin (Fedora atómica).
+Ramalama ya venía instalado via brew (=brew install ramalama=). El objetivo era
+correr modelos locales desde la terminal con soporte de herramientas (bash tool
+calls) usando Goose como agente.
+
+** Exploración
+
+*** Estado inicial
+
+Ramalama 0.17.1 ya estaba instalado. La configuración detecta automáticamente
+el acelerador:
+
+#+BEGIN_SRC sh
+ramalama version   # → 0.17.1
+ramalama info      # → "Accelerator": "hip"
+#+END_SRC
+
+HIP/ROCm se detecta automáticamente para la 780M iGPU. El engine es Podman.
+
+*** Flag =--nocontainer= eliminado
+
+En versiones anteriores de Ramalama existía =--nocontainer= para evitar
+contenedores. En 0.17.1 fue eliminado. Intentarlo da:
+
+#+BEGIN_SRC
+ramalama: error: unrecognized arguments: --nocontainer
+#+END_SRC
+
+El reemplazo para forzar CPU-only es =--ngl 0= (GPU layers = 0):
+
+#+BEGIN_SRC sh
+ramalama run --ngl 0 ollama://qwen3:4b
+#+END_SRC
+
+*** Problema: contexto de 262K causa OOM en la iGPU
+
+Sin especificar contexto, Ramalama intenta alocar el contexto máximo del modelo
+(262144 tokens para Qwen3) en la GPU:
+
+#+BEGIN_SRC
+ggml_backend_cuda_buffer_type_alloc_buffer: allocating 36864.00 MiB on device 0: cudaMalloc failed: out of memory
+#+END_SRC
+
+La 780M tiene ~20GB de VRAM compartida, pero 36GB para el KV cache de 262K
+tokens no cabe. Dos soluciones:
+
+*CPU-only (más estable para 14B+):*
+#+BEGIN_SRC sh
+ramalama run --ngl 0 ollama://qwen3:8b
+#+END_SRC
+
+*iGPU con contexto acotado (7B-8B únicamente):*
+#+BEGIN_SRC sh
+ramalama run --ngl -1 -c 8192 ollama://qwen3:4b
+#+END_SRC
+
+Con 8K contexto un modelo de 4B Q4 necesita ~2.5GB en la iGPU, lo que sí cabe.
+
+*** Servir modelos como REST API
+
+#+BEGIN_SRC sh
+ramalama serve --ngl 0 --port 8080 ollama://qwen3:8b
+#+END_SRC
+
+Expone un endpoint OpenAI-compatible en =http://localhost:8080/v1=. Cualquier
+herramienta que soporte la API de OpenAI puede apuntar aquí.
+
+*** Bash tool calls con Goose
+
+Goose 1.18.0 ya estaba instalado (=~/.local/bin/goose=) y configurado con la
+extensión =developer= habilitada, que da acceso a shell y edición de archivos.
+
+Para usarlo con un modelo local se sirve el modelo y se apunta Goose al endpoint:
+
+#+BEGIN_SRC sh
+# Terminal 1: servir el modelo
+ramalama serve --ngl 0 --port 8080 ollama://qwen3:8b
+
+# Terminal 2: iniciar sesión de Goose con modelo local
+OPENAI_BASE_URL=http://localhost:8080/v1 OPENAI_API_KEY=ollama goose session
+#+END_SRC
+
+Goose detecta el proveedor =openai= y usa la API local. La extensión =developer=
+ya habilitada le da capacidad de ejecutar bash, leer y editar archivos.
+
+*** Comandos útiles de Ramalama
+
+| Comando | Función |
+|---------+---------|
+| =ramalama list= | Modelos descargados |
+| =ramalama ps= | Contenedores corriendo |
+| =ramalama run --ngl 0 ollama://MODEL= | Chat interactivo CPU-only |
+| =ramalama serve --ngl 0 -p 8080 ollama://MODEL= | REST API |
+| =ramalama stop NAME= | Detener modelo |
+| =ramalama rm ollama://MODEL= | Eliminar modelo |
+| =ramalama info= | Info del sistema y acelerador |
+
+** Conclusiones
+
+- =--nocontainer= fue eliminado en 0.17.1; usar =--ngl 0= para CPU-only.
+- El contexto por defecto (262K tokens) causa OOM en la iGPU; siempre acotar
+  con =-c 8192= o similar al usar GPU.
+- Para modelos 14B+ el modo CPU-only (=--ngl 0=) es lo más estable.
+- Para modelos 7B-8B, =--ngl -1 -c 8192= permite usar la iGPU con buen
+  rendimiento sin crashes.
+- Ramalama + Goose es una combinación funcional para bash tool calls locales:
+  Ramalama sirve el modelo, Goose lo consume via OpenAI-compatible API.
+
+** Modelos recomendados
+
+Ver [[./ollama-on-framework.md][exploración de Ollama en Framework]] para benchmarks completos. Para
+tool calling desde terminal, el sweet spot es =qwen3:8b= (~5GB RAM, 12-17 tok/s).
+
+** Próximos pasos
+
+- [ ] Crear alias/script que levante =ramalama serve= y =goose session= juntos
+- [ ] Evaluar si configurar =GOOSE_PROVIDER=openai= de forma permanente en
+      =~/.config/goose/config.yaml= para alternar entre Claude y modelo local
+- [ ] Verificar si Ramalama soporta =HSA_OVERRIDE_GFX_VERSION=11.0.2= en el
+      contenedor para ROCm correcto en la 780M (gfx1103 → gfx1102)
