@@ -1,0 +1,61 @@
+#+title: Migrar beads SQLite a Dolt cuando la migración no importó los datos
+#+date: 2026-03-01
+
+* Migrar beads SQLite a Dolt cuando la migración no importó los datos
+
+** Contexto
+
+Al migrar beads a un backend Dolt, el proceso renombró la base SQLite original
+(=beads.db= → =beads.db.migrated=) pero no importó los datos. El resultado: Dolt
+vacío con 0 issues aunque había 349 en el JSONL y el SQLite respaldado.
+
+Síntoma: =bd stats= muestra 0 issues. =.beads/issues.jsonl= tiene contenido.
+Existen archivos =beads.backup-pre-dolt-*.db= y =beads.db.migrated= en =.beads/=.
+
+** Exploración
+
+El comando =bd migrate --to-dolt= busca un archivo =beads.db= en =.beads/=.
+El problema es que el original fue renombrado a =beads.db.migrated= y los backups
+tienen nombres como =beads.backup-pre-dolt-*.db=; ninguno coincide con el patrón
+que busca el migrador.
+
+Solución: crear un symlink temporal que satisfaga esa búsqueda.
+
+#+begin_src bash
+# 1. Verificar que el SQLite tiene datos
+sqlite3 .beads/beads.db.migrated "SELECT COUNT(*) FROM issues;"
+# → 349
+
+# 2. Crear symlink temporal con ruta absoluta
+ln -s /ruta/absoluta/.beads/beads.db.migrated .beads/beads.db
+
+# 3. Verificar que el migrador lo encuentra
+bd migrate --to-dolt --dry-run
+# → Issues to migrate: 349
+
+# 4. Ejecutar la migración real
+bd migrate --to-dolt --yes
+
+# 5. Limpiar el symlink (el migrador ya no lo necesita)
+rm .beads/beads.db
+
+# 6. Verificar
+bd stats
+#+end_src
+
+El migrador crea un nuevo backup antes de proceder, así que es seguro.
+Importa issues, dependencias, eventos, comentarios y config desde SQLite a Dolt.
+
+** Conclusiones
+
+- =bd migrate --to-dolt= requiere exactamente =beads.db= en =.beads/=; no acepta
+  otros nombres ni usa =--db= como override de la fuente SQLite (ese flag apunta
+  al destino Dolt, no al origen).
+- Un symlink temporal es suficiente para desbloquear la migración.
+- El archivo =beads.db.migrated= es la fuente canónica en un intento fallido;
+  los =beads.backup-pre-dolt-*.db= son copias adicionales creadas en cada intento.
+- =issues.jsonl= es un log append-only; no es la fuente de importación.
+
+** Próximos pasos
+
+- [ ] Confirmar con =bd dolt push= que el remoto queda sincronizado con los datos importados
