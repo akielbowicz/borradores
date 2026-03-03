@@ -1,0 +1,93 @@
+#+title: Actualizar proyecto beads a backend Dolt (v0.58+)
+#+date: 2026-03-03
+
+* Actualizar proyecto beads a backend Dolt (v0.58+)
+
+** Contexto
+
+beads v0.58.0 eliminó el backend SQLite por completo. Los proyectos que tenían
+=beads.db= (SQLite) dejan de funcionar: =bd stats= devuelve "no beads database
+found" aunque =.beads/= existe y tiene datos.
+
+Síntomas:
+- =bd stats= → =Error: no beads database found=
+- =bd doctor= muestra =✖ Database: No dolt database found= y =✖ Dolt Connection: Failed=
+- =.beads/metadata.json= apunta a =beads.db= (valor SQLite, no Dolt)
+- Existe =.beads/beads.db= (SQLite con datos) y =.beads/issues.jsonl= (export JSONL)
+
+** Contexto adicional: servidores Dolt compartidos entre proyectos
+
+beads inicia un =dolt sql-server= por proyecto, pero si ya hay uno corriendo en
+el puerto por defecto (3307), lo reutiliza. Cada proyecto obtiene su propia base
+de datos dentro del mismo servidor (identificada por el prefijo del proyecto).
+
+Ejemplo de coexistencia normal:
+
+#+begin_src
+puerto 3307  → servidor de proyecto wai (base "wai")
+puerto 13420 → servidor de proyecto nayra (base "nayra")
+puerto 13421 → servidor de otro proyecto
+#+end_src
+
+Cuando se inicializa un nuevo proyecto y hay un servidor en 3307, beads se conecta
+a ese servidor y crea la base =<prefijo>= dentro de él. Esto es correcto y esperado.
+No es un conflicto: son bases de datos separadas en el mismo proceso Dolt.
+
+** Solución
+
+#+begin_src bash
+# 1. Verificar que issues.jsonl tiene los datos
+wc -l .beads/issues.jsonl
+sqlite3 .beads/beads.db "SELECT COUNT(*) FROM issues;"
+# Si los conteos coinciden, el JSONL es suficiente como fuente
+
+# 2. Re-inicializar con backend Dolt importando desde JSONL
+bd init --prefix <prefijo> --from-jsonl --force
+# Conecta al servidor Dolt disponible (o inicia uno nuevo)
+# Crea la base de datos con el nombre del prefijo
+# Importa todos los issues desde issues.jsonl
+
+# 3. Verificar la importación
+bd stats
+
+# 4. Aplicar todas las correcciones automáticas
+bd doctor --fix --yes
+# Actualiza git hooks (de versiones antiguas a 0.58+)
+# Elimina lock files obsoletos
+# Aplica migraciones pendientes
+# Limpia artefactos SQLite vacíos
+
+# 5. Confirmar los cambios pendientes en Dolt
+bd vc commit -m "migrate to Dolt backend"
+
+# 6. Eliminar manualmente el SQLite antiguo (doctor lo salta por seguridad)
+rm .beads/beads.db .beads/beads.db-shm .beads/beads.db-wal 2>/dev/null; true
+
+# 7. Verificar estado final
+bd ready
+#+end_src
+
+** Conclusiones
+
+- =bd init --from-jsonl --force= es el camino correcto para migrar un proyecto
+  SQLite existente a Dolt cuando la data ya está en =issues.jsonl=.
+- =--force= es necesario porque el proyecto ya estaba inicializado (existía
+  =.beads/=); sin él, =bd init= se niega a sobrescribir.
+- =bd doctor --fix --yes= es seguro de correr; actualiza hooks, limpia locks y
+  aplica migraciones. Los archivos que requieren revisión manual (=beads.db=,
+  =issues.jsonl=) los salta con "Skip (needs review)".
+- El servidor Dolt compartido entre proyectos no es un problema: cada proyecto
+  usa una base de datos con nombre distinto dentro del mismo servidor.
+- =bd vc commit= es necesario después de =init= porque los cambios de metadatos
+  quedan en el working set de Dolt hasta confirmarse explícitamente.
+- Los archivos =beads.db-shm= y =beads.db-wal= pueden no existir si SQLite los
+  limpió al cerrar; el =rm= con =2>/dev/null; true= maneja eso sin errores.
+
+** Diferencia con el caso del symlink temporal
+
+El documento [[file:migrar-beads-sqlite-a-dolt-cuando-la-migracion-no-importo-los-datos.org][migrar-beads-sqlite-a-dolt...]] cubre un caso distinto: =bd migrate
+--to-dolt= corrió pero no importó datos (renombró el archivo fuente a
+=beads.db.migrated= y quedó Dolt vacío). La solución allí es un symlink temporal.
+
+Este documento cubre actualizar a v0.58+ donde SQLite ya no existe como backend:
+no hay comando =bd migrate --to-dolt=; el camino es =bd init --from-jsonl --force=.
