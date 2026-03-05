@@ -227,12 +227,18 @@ Sonnet 4.6 in sasha | ctx:14% i:1 w:1k r:26k o:170 hit:95% | $0.452
 - =~/.claude.json= es metadata del cliente, no tiene información útil de sesión
 - El JSON que recibe la statusline por stdin es la fuente correcta para datos
   en tiempo real: costo, tokens, modelo, directorio
-- El costo en =cost.total_cost_usd= es acumulado por sesión y se actualiza
-  cada turno
+- El costo en =cost.total_cost_usd= es acumulado por *proceso* (no por
+  conversación): =​/clear= resetea el contexto pero *no* resetea el contador
+  de costo. Para ver el costo desde cero hay que salir y relanzar Claude Code
 - El desglose de tokens permite calcular el cache hit ratio, que en sesiones
   largas suele superar el 90% con prompt caching activo
 - =transcript_path= en el JSON apunta al =.jsonl= de la sesión actual, lo que
   permite acceder a todo el historial de tokens si se necesita más granularidad
+- No hay datos históricos de costo en USD: =stats-cache.json= guarda
+  =messageCount=, =sessionCount= y =toolCallCount= por día, pero el campo
+  =costUSD= en =modelUsage= está siempre en 0. Para reconstruir costos
+  históricos habría que parsear los =.jsonl= de sesión y aplicar los precios
+  de cada modelo manualmente
 
 ** Referencias
 
