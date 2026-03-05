@@ -1,0 +1,240 @@
+#+title: claude code statusline: costos y desglose de contexto
+#+date: 2026-03-05
+
+* claude code statusline: costos y desglose de contexto
+
+** Contexto
+
+Claude Code tiene una statusline configurable que aparece en la parte inferior
+del REPL. La config por defecto muestra poco. Queríamos entender qué datos
+están disponibles y enriquecer la statusline con costos de sesión y desglose
+del uso de contexto.
+
+** Exploración
+
+*** ¿Qué es =~/.claude.json=?
+
+El archivo =~/.claude.json= es generado y mantenido por Claude Code
+automáticamente. No se edita a mano. Contiene:
+
+- =numStartups= — cuántas veces se abrió Claude Code
+- =tipsHistory= — qué tips del UI ya se mostraron y cuántas veces
+- =promptQueueUseCount= — total de prompts encolados en todas las sesiones
+- =cachedStatsigGates= / =cachedGrowthBookFeatures= — feature flags del
+  sistema de rollout de Anthropic (Statsig + GrowthBook)
+
+No tiene información de costos ni tokens. Su utilidad para la statusline es
+limitada.
+
+*** =~/.claude/stats-cache.json=
+
+Más interesante es =~/.claude/stats-cache.json=, que contiene actividad
+histórica:
+
+#+BEGIN_SRC json
+{
+  "totalMessages": 34761,
+  "totalSessions": 216,
+  "lastComputedDate": "2026-02-19",
+  "dailyActivity": [
+    {
+      "date": "2026-02-19",
+      "messageCount": 5646,
+      "sessionCount": 20,
+      "toolCallCount": 1341
+    }
+  ],
+  "dailyModelTokens": [
+    {
+      "date": "2026-02-19",
+      "tokensByModel": {
+        "claude-sonnet-4-6": 157255
+      }
+    }
+  ]
+}
+#+END_SRC
+
+Son *totales globales*, actualizados una vez por día (no en tiempo real).
+Útil para estadísticas históricas pero no para la statusline.
+
+*** La statusline recibe JSON por stdin
+
+La statusline se configura en =~/.claude/settings.json=:
+
+#+BEGIN_SRC json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "bash /var/home/sasha/.claude/statusline-command.sh"
+  }
+}
+#+END_SRC
+
+Claude Code ejecuta el script después de cada turno y le pasa un JSON por
+stdin. Para descubrir qué campos tiene, agregamos un log temporal al script:
+
+#+BEGIN_SRC bash
+input=$(cat)
+echo "$input" >> /tmp/statusline-debug.json
+#+END_SRC>
+
+Después de un par de mensajes, inspeccionamos el archivo:
+
+#+BEGIN_SRC sh
+cat /tmp/statusline-debug.json | jq .
+#+END_SRC
+
+*** Estructura completa del JSON de entrada
+
+#+BEGIN_SRC json
+{
+  "session_id": "6296ac0a-5d95-40e7-b77e-89f124488759",
+  "transcript_path": "/var/home/sasha/.claude/projects/-var-home-sasha/6296ac0a....jsonl",
+  "cwd": "/var/home/sasha",
+  "model": {
+    "id": "claude-sonnet-4-6",
+    "display_name": "Sonnet 4.6"
+  },
+  "workspace": {
+    "current_dir": "/var/home/sasha",
+    "project_dir": "/var/home/sasha",
+    "added_dirs": []
+  },
+  "version": "2.1.69",
+  "output_style": { "name": "default" },
+  "cost": {
+    "total_cost_usd": 0.4518750000000001,
+    "total_duration_ms": 2117295,
+    "total_api_duration_ms": 117158,
+    "total_lines_added": 3,
+    "total_lines_removed": 0
+  },
+  "context_window": {
+    "total_input_tokens": 90,
+    "total_output_tokens": 4826,
+    "context_window_size": 200000,
+    "current_usage": {
+      "input_tokens": 1,
+      "output_tokens": 170,
+      "cache_creation_input_tokens": 1371,
+      "cache_read_input_tokens": 26398
+    },
+    "used_percentage": 14,
+    "remaining_percentage": 86
+  },
+  "exceeds_200k_tokens": false
+}
+#+END_SRC
+
+Campos relevantes:
+
+- =cost.total_cost_usd= — costo acumulado de la sesión en USD
+- =context_window.used_percentage= — porcentaje del contexto usado
+- =context_window.current_usage= — desglose de tokens del último turno:
+  - =input_tokens= — tokens frescos (no cacheados)
+  - =cache_creation_input_tokens= — tokens escritos al caché este turno
+  - =cache_read_input_tokens= — tokens leídos del caché (baratos)
+  - =output_tokens= — tokens generados
+
+*** Cache hit ratio
+
+Con el desglose se puede calcular qué tan bien está funcionando el prompt
+caching de Claude:
+
+#+BEGIN_SRC
+hit_ratio = cache_read / (input + cache_creation + cache_read)
+#+END_SRC
+
+Un ratio alto (>80%) significa que la mayor parte del contexto se está
+sirviendo desde caché, lo que reduce costos significativamente. Los tokens
+cacheados cuestan ~10x menos que los frescos.
+
+** Implementación final
+
+El script resultante =~/.claude/statusline-command.sh=:
+
+#+BEGIN_SRC bash
+#!/usr/bin/env bash
+input=$(cat)
+
+cyan=$(printf '\033[36m')
+blue=$(printf '\033[34m')
+magenta=$(printf '\033[35m')
+green=$(printf '\033[32m')
+yellow=$(printf '\033[33m')
+red=$(printf '\033[31m')
+reset=$(printf '\033[0m')
+
+model=$(echo "$input" | jq -r '.model.display_name')
+cwd=$(echo "$input" | jq -r '.workspace.current_dir')
+dir_name=$(basename "$cwd")
+
+# Git branch
+git_branch=""
+if git -C "$cwd" rev-parse --git-dir > /dev/null 2>&1; then
+    branch=$(git -C "$cwd" --no-optional-locks branch --show-current 2>/dev/null || echo "detached")
+    [ -n "$branch" ] && git_branch=" on ${magenta}${branch}${reset}"
+fi
+
+# Token formatter (26398 -> 26k)
+fmt_tok() {
+    local n=$1
+    if [ "$n" -ge 1000 ]; then printf "%dk" $(( n / 1000 ))
+    else printf "%d" "$n"; fi
+}
+
+# Contexto con desglose y cache hit ratio
+context_info=""
+used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+if [ -n "$used_pct" ]; then
+    used_int=$(printf "%.0f" "$used_pct")
+    if   [ "$used_int" -gt 40 ]; then ctx_color="$red"
+    elif [ "$used_int" -gt 35 ]; then ctx_color="$yellow"
+    else ctx_color="$green"; fi
+
+    fresh=$(echo "$input"   | jq -r '.context_window.current_usage.input_tokens // 0')
+    cache_w=$(echo "$input" | jq -r '.context_window.current_usage.cache_creation_input_tokens // 0')
+    cache_r=$(echo "$input" | jq -r '.context_window.current_usage.cache_read_input_tokens // 0')
+    out=$(echo "$input"     | jq -r '.context_window.current_usage.output_tokens // 0')
+
+    total_in=$(( fresh + cache_w + cache_r ))
+    [ "$total_in" -gt 0 ] && hit_pct=$(( cache_r * 100 / total_in )) || hit_pct=0
+
+    context_info=" | ${ctx_color}ctx:${used_int}%${reset} i:$(fmt_tok $fresh) w:$(fmt_tok $cache_w) r:$(fmt_tok $cache_r) o:$(fmt_tok $out) ${cyan}hit:${hit_pct}%${reset}"
+fi
+
+# Costo de sesión
+cost_info=""
+total_cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
+if [ -n "$total_cost" ]; then
+    cost_fmt=$(printf "%.3f" "$total_cost")
+    cost_info=" | ${yellow}\$${cost_fmt}${reset}"
+fi
+
+printf "${blue}%s${reset} in ${cyan}%s${reset}%s%s%s" \
+    "$model" "$dir_name" "$git_branch" "$context_info" "$cost_info"
+#+END_SRC
+
+Ejemplo de output:
+
+#+BEGIN_SRC
+Sonnet 4.6 in sasha | ctx:14% i:1 w:1k r:26k o:170 hit:95% | $0.452
+#+END_SRC
+
+** Conclusiones
+
+- =~/.claude.json= es metadata del cliente, no tiene información útil de sesión
+- El JSON que recibe la statusline por stdin es la fuente correcta para datos
+  en tiempo real: costo, tokens, modelo, directorio
+- El costo en =cost.total_cost_usd= es acumulado por sesión y se actualiza
+  cada turno
+- El desglose de tokens permite calcular el cache hit ratio, que en sesiones
+  largas suele superar el 90% con prompt caching activo
+- =transcript_path= en el JSON apunta al =.jsonl= de la sesión actual, lo que
+  permite acceder a todo el historial de tokens si se necesita más granularidad
+
+** Referencias
+
+- [[file:~/.claude/statusline-command.sh][~/.claude/statusline-command.sh]] — script resultante
+- [[https://docs.anthropic.com/en/docs/about-claude/models/overview][Precios de modelos Claude]] — para calcular costos desde tokens si se necesita
