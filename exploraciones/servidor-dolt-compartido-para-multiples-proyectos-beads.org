@@ -1,0 +1,209 @@
+#+title: Servidor Dolt compartido para múltiples proyectos beads
+#+date: 2026-03-05
+
+* Servidor Dolt compartido para múltiples proyectos beads
+
+** Contexto
+
+Al trabajar con varios proyectos beads en la misma máquina, la base de datos
+desaparece en cada nueva sesión. =bd stats= devuelve el error:
+
+#+begin_src
+Error: failed to open database: database "<proyecto>" not found on Dolt server at 127.0.0.1:3307
+#+end_src
+
+Aunque el proyecto fue inicializado correctamente en sesiones anteriores.
+
+** Exploración
+
+*** Por qué se pierde la base de datos
+
+Cada proyecto beads tiene su propio directorio =.beads/dolt/= con un servidor
+Dolt configurado. Cuando corre =bd dolt start=, inicia ese servidor en el primer
+puerto disponible (normalmente 3307 si está libre, o 13490+ si no).
+
+El problema estructural es que =bd init= conecta al servidor que esté en el
+puerto 3307 *en ese momento*, independientemente de qué proyecto sea dueño de
+ese servidor. Si al inicializar =sxAct= había otro proyecto (ej. =fabbro=) en
+3307, la base de datos =sxAct= quedaba creada *dentro del directorio de datos de
+fabbro*, no en =sxAct/.beads/dolt/=.
+
+En la siguiente sesión, el servidor que arranque en 3307 será diferente, y no
+tendrá la base =sxAct= en su directorio de datos. La base no se perdió: está en
+el directorio de otro proyecto. Pero ese proyecto puede no estar corriendo.
+
+*** Diagnóstico
+
+#+begin_src bash
+# Ver qué proceso ocupa el puerto 3307 y cuál es su directorio de datos
+ss -tlnp | grep 3307
+ls -la /proc/<PID>/cwd
+
+# Listar las bases de datos que tiene ese servidor
+dolt --data-dir <cwd-del-proceso> sql -q "SHOW DATABASES;"
+
+# Comparar con dónde busca beads para cada proyecto
+cat .beads/metadata.json
+#+end_src
+
+En el caso observado, =fabbro/.beads/dolt/= contenía los directorios:
+=fabbro/=, =fotos/=, =khipu/=, =sxAct/= — bases de distintos proyectos
+acumuladas en un solo servidor por este comportamiento.
+
+*** Por qué no funciona =no-db: true=
+
+La configuración =no-db: true= en =.beads/config.yaml= es un vestigio del
+backend SQLite, eliminado en v0.58.0. En la versión actual, Dolt es el único
+backend soportado; ese flag no tiene efecto útil.
+
+*** Issues relacionados en el repositorio de beads
+
+- [[https://github.com/steveyegge/beads/issues/2336][#2336]]: =bd init= crea la base en el servidor de otro proyecto cuando no existe
+  =metadata.json= todavía (el bug exacto descrito arriba).
+- [[https://github.com/steveyegge/beads/issues/2098][#2098]]: cómo correr múltiples proyectos beads en la misma máquina con Dolt.
+- [[https://github.com/steveyegge/beads/issues/2323][#2323]]: documentación pendiente para configurar un servidor Dolt central.
+
+** Solución
+
+Un único servidor Dolt persistente, gestionado por systemd, que sirve todas las
+bases de datos. Cada proyecto tiene su propia base con nombre distinto dentro de
+ese servidor compartido.
+
+*** 1. Crear el directorio de datos compartido
+
+#+begin_src bash
+mkdir -p ~/.local/share/beads/dolt
+#+end_src
+
+*** 2. Configurar el servidor
+
+#+begin_src bash
+cat > ~/.local/share/beads/dolt/config.yaml << 'EOF'
+data_dir: /var/home/sasha/.local/share/beads/dolt
+
+listener:
+  host: 127.0.0.1
+  port: 3307
+  max_connections: 100
+EOF
+#+end_src
+
+*** 3. Crear el servicio systemd de usuario
+
+#+begin_src bash
+mkdir -p ~/.config/systemd/user
+
+cat > ~/.config/systemd/user/beads-dolt.service << 'EOF'
+[Unit]
+Description=Beads shared Dolt SQL server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/linuxbrew/.linuxbrew/bin/dolt sql-server --config /var/home/sasha/.local/share/beads/dolt/config.yaml
+WorkingDirectory=/var/home/sasha/.local/share/beads/dolt
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable beads-dolt.service
+systemctl --user start beads-dolt.service
+#+end_src
+
+*** 4. Habilitar linger para que el servicio arranque sin sesión activa
+
+#+begin_src bash
+loginctl enable-linger $USER
+#+end_src
+
+Sin esto, el servicio solo corre mientras hay una sesión de usuario abierta.
+
+*** 5. Eliminar los directorios =.beads/dolt/= per-proyecto
+
+#+begin_src bash
+# Para cada proyecto:
+rm -rf /ruta/al/proyecto/.beads/dolt
+#+end_src
+
+Con el directorio =.beads/dolt/= ausente, beads no puede iniciar un servidor
+propio. Se conecta directamente al servidor que ya corre en 3307.
+
+*** 6. Re-inicializar cada proyecto contra el servidor compartido
+
+Asegurarse de que el servicio está corriendo y luego:
+
+#+begin_src bash
+cd /ruta/al/proyecto
+bd init --prefix <prefijo> --from-jsonl --force --quiet
+#+end_src
+
+Si el JSONL tiene problemas de tipos (ej. campos booleanos guardados como enteros
+0/1 por versiones antiguas), hay que limpiarlos antes:
+
+#+begin_src python
+import json
+
+BOOL_FIELDS = {'crystallizes', 'ephemeral', 'pinned', 'starred',
+               'archived', 'is_template', 'read_only', 'is_draft'}
+KEEP = {'id','title','description','status','priority','issue_type','owner',
+        'created_at','created_by','updated_at','notes','design','closed_at',
+        'closed_by','blocked_reason','assignees','labels','tags'}
+
+path = '.beads/issues.jsonl'
+lines = [l.strip() for l in open(path) if l.strip()]
+fixed = []
+for line in lines:
+    obj = json.loads(line)
+    clean = {k: v for k, v in obj.items() if k in KEEP}
+    if clean.get('status') == 'tombstone':
+        continue
+    for f in BOOL_FIELDS:
+        if f in clean and isinstance(clean[f], int):
+            clean[f] = bool(clean[f])
+    fixed.append(json.dumps(clean))
+open(path, 'w').write('\n'.join(fixed) + '\n')
+#+end_src
+
+*** 7. Verificar
+
+#+begin_src bash
+# Ver todas las bases en el servidor compartido
+dolt --data-dir ~/.local/share/beads/dolt sql -q "SHOW DATABASES;"
+
+# Verificar cada proyecto
+bd stats
+#+end_src
+
+** Gestión del servicio
+
+#+begin_src bash
+systemctl --user status beads-dolt    # estado
+systemctl --user restart beads-dolt   # reiniciar (si algo falla)
+systemctl --user stop beads-dolt      # detener
+journalctl --user -u beads-dolt -f    # logs en vivo
+#+end_src
+
+** Conclusiones
+
+- El diseño actual de beads asume un único servidor Dolt en el puerto 3307; no
+  hay aislamiento por proyecto a nivel de proceso.
+- Tener un servidor compartido persistente es la solución correcta: cada
+  proyecto usa su propia base de datos (=sxAct=, =fabbro=, =wai=…) dentro del
+  mismo proceso Dolt, igual que múltiples bases en un servidor PostgreSQL.
+- El directorio =.beads/dolt/= per-proyecto es el origen del problema: beads lo
+  usa para iniciar un servidor propio que compite con los demás.
+  Eliminarlo fuerza el uso del servidor compartido.
+- =loginctl enable-linger= es necesario en sistemas sin sesión persistente
+  (servidores, contenedores) para que el servicio sobreviva a cierres de sesión.
+- El script de limpieza de JSONL es necesario cuando se viene de versiones
+  antiguas de beads que guardaban booleanos como enteros 0/1 y tenían campos
+  desconocidos en el formato actual.
+
+** Ver también
+
+- [[file:actualizar-proyecto-beads-a-backend-dolt-v0.58.org][Actualizar proyecto beads a backend Dolt (v0.58+)]]
+- [[file:migrar-beads-sqlite-a-dolt-cuando-la-migracion-no-importo-los-datos.org][Migrar beads SQLite a Dolt cuando la migración no importó los datos]]
