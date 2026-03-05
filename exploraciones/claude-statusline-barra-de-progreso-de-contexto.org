@@ -1,0 +1,183 @@
+#+title: claude code statusline: barra de progreso de contexto por categorías
+#+date: 2026-03-05
+
+* claude code statusline: barra de progreso de contexto por categorías
+
+** Contexto
+
+Partiendo de la statusline con desglose de tokens (ver
+[[file:claude-statusline-costos-y-contexto.org]]), quisimos ir más lejos: mostrar
+el uso del contexto como una barra de progreso visual, desglosada por
+categorías semánticas (sistema, mensajes, espacio libre), con un marcador en
+el umbral de advertencia del 40%.
+
+** Exploración
+
+*** ¿El JSON de la statusline tiene desglose por categoría?
+
+La primera pregunta fue si el JSON de entrada ya incluye el desglose que
+muestra =/context= (=system prompt=, =tools=, =skills=, =messages=). Para
+averiguarlo, capturamos el JSON a un archivo temporal:
+
+#+BEGIN_SRC bash
+input=$(cat)
+echo "$input" > /tmp/statusline-debug.json
+#+END_SRC
+
+El JSON *no* incluye ese desglose. Solo tiene los totales por tipo de caché:
+
+#+BEGIN_SRC json
+"current_usage": {
+  "input_tokens": 1,
+  "cache_creation_input_tokens": 880,
+  "cache_read_input_tokens": 17000,
+  "output_tokens": 8
+}
+#+END_SRC
+
+La categorización de =/context= se computa internamente en Claude Code a partir
+del contenido del prompt construido en memoria — no está expuesta al exterior.
+
+*** Aproximación desde el transcript
+
+El JSON de la statusline sí incluye =transcript_path=, que apunta al =.jsonl= de
+la sesión. Cada entrada de tipo =assistant= tiene un campo =usage= con el desglose
+de tokens de esa llamada a la API.
+
+La idea: parsear el transcript para estimar categorías:
+
+- *sys* (overhead del sistema): =cache_creation_input_tokens= del *primer* mensaje
+  assistant con valor > 0. En el primer turno se cachea el system prompt + tools
+  + skills juntos. Eso da una aproximación del overhead fijo.
+
+- *msgs*: todo lo acumulado en caché después de ese baseline.
+  =msgs = (cache_read + cache_creation + fresh) - sys=
+
+- *free*: =ctx_size - total_used=
+
+La limitación conocida: el primer turno también cachea el primer mensaje de
+usuario, así que =sys= está ligeramente sobreestimado. Es una aproximación, no
+una medición exacta.
+
+*** Rendimiento en transcripts grandes
+
+Parsear el transcript completo con =json.loads= por línea puede ser lento para
+sesiones largas. La solución fue una estrategia de dos fases:
+
+1. *Cabeza*: parsear completamente solo las primeras 200 líneas, para encontrar
+   el baseline de =first_cache_creation=.
+
+2. *Cola*: mantener un =deque(maxlen=30)= con las últimas 30 líneas crudas
+   durante el recorrido. Al terminar, parsear solo esas para obtener el
+   =last_usage=.
+
+3. *Conteo de turnos*: en lugar de parsear cada línea como JSON, hacer string
+   matching sobre el texto crudo. Las líneas que empiezan con ={= y contienen
+   ="type":"user"= se cuentan directamente. Esto es ~10x más rápido que
+   =json.loads= para el bulk del archivo.
+
+#+BEGIN_SRC python
+for i, raw in enumerate(f):
+    raw = raw.strip()
+    recent.append(raw)
+
+    # Conteo rápido sin parsear JSON
+    if raw.startswith('{') and ('"type":"user"' in raw or '"type": "user"' in raw):
+        turns += 1
+        continue
+
+    # Parseo completo solo para la cabeza
+    if i < HEAD_LINES and first_cache_creation is None:
+        ...
+#+END_SRC
+
+El timeout de 2 segundos es la red de seguridad final; si el archivo es
+gigante o el sistema está cargado, el =category_line= queda vacío y la
+statusline sigue funcionando.
+
+*** Review de calidad (regla de 5)
+
+Antes de cerrar, se hizo una revisión sistemática del script completo:
+
+| # | Problema | Fix |
+|---+----------+-----|
+| 1 | =GREEN= y =out_tok= definidos pero nunca usados | Eliminados |
+| 2 | =echo "$input"= puede malinterpretar flags (=-n=, =-e=) | Reemplazado por =printf '%s\n' "$input"= |
+| 3 | 7 llamadas separadas a =jq= (7 subprocesos) | Batched en una sola llamada con salida TSV |
+| 4 | Sin límite de líneas: transcripts grandes agotan el timeout | Estrategia cabeza+cola+string matching |
+| 5 | =first_cache_creation= tomaba el primer valor aunque fuera 0 (post-compactación) | Ahora escanea hasta encontrar un valor > 0 |
+
+El batching de jq usa =IFS=$'\t' read -r= sobre la salida separada por tabs:
+
+#+BEGIN_SRC bash
+_jq=$(printf '%s\n' "$input" | jq -r '
+    (.model.display_name // "") + "\t" +
+    (.workspace.current_dir // "") + "\t" +
+    ...
+')
+IFS=$'\t' read -r model cwd used_pct fresh cache_w cache_r out \
+    total_cost transcript_path ctx_size <<< "$_jq"
+#+END_SRC
+
+*** Barra de progreso con marcador de umbral
+
+La barra se construye carácter a carácter para poder insertar el marcador del
+40% en la posición visual correcta sin desplazar el ancho total:
+
+#+BEGIN_SRC python
+LIMIT_POS = round(0.4 * BAR_WIDTH)  # posición 16 de 40
+
+for pos in range(BAR_WIDTH):
+    if pos == LIMIT_POS:
+        bar_parts.append(RESET + WHITE + '\u254e' + RESET)  # ╎
+        cur_color = ''
+        continue
+    if pos < sys_w:
+        color, char = CYAN, '█'
+    elif pos < sys_w + msg_w:
+        color, char = YELLOW, '█'
+    else:
+        color, char = DIM, '░'
+    ...
+#+END_SRC
+
+El carácter =╎= (U+254E, BOX DRAWINGS LIGHT DOUBLE DASH VERTICAL) en blanco
+brillante actúa como tick. Cuando el uso supera el 40%, el marcador queda
+"cubierto" por los bloques de color — el hecho de que desaparezca es en sí
+una señal visual.
+
+** Implementación final
+
+Output de la statusline (dos líneas):
+
+#+BEGIN_SRC
+Sonnet 4.6 in sasha | ctx:9% i:1 w:880 r:17k o:8 hit:95% | $0.222
+[██████████╎░░░░░░░░░░░░░░░░░░░░░░░░░░░] sys:~7k msgs:~20k free:171k (85%) turns:26
+#+END_SRC
+
+- Línea 1: modelo, directorio, branch, desglose de caché, costo
+- Línea 2: barra proporcional + etiquetas con totales aproximados
+
+Colores:
+- *Cian* =█= — overhead de sistema (system prompt + tools + skills)
+- *Amarillo* =█= — mensajes de la conversación
+- *Gris dim* =░= — espacio libre
+- *Blanco brillante* =╎= — marcador del 40% (umbral de advertencia)
+
+** Conclusiones
+
+- El desglose por categorías de =/context= *no está disponible* en el JSON de la
+  statusline; hay que aproximarlo desde el transcript
+- La aproximación basada en =first_cache_creation= es útil y visualmente
+  informativa aunque no sea exacta
+- Para transcripts potencialmente grandes, la estrategia cabeza+cola+string
+  matching mantiene el tiempo de ejecución bajo control sin sacrificar
+  exactitud en los datos más importantes (baseline y último uso)
+- Construir la barra carácter a carácter, en lugar de concatenar strings de
+  longitud calculada, permite insertar marcadores en posiciones exactas con
+  ANSI sin aritmética frágil de offsets
+
+** Referencias
+
+- [[file:~/.claude/statusline-command.sh][~/.claude/statusline-command.sh]] — script resultante
+- [[file:claude-statusline-costos-y-contexto.org][exploración anterior]] — statusline base con costos y desglose de caché
