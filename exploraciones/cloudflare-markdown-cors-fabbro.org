@@ -1,0 +1,54 @@
+* Cloudflare Markdown for Agents + CORS en fabbro web
+:PROPERTIES:
+:CREATED: [2026-03-07]
+:END:
+
+Investigué cómo usar Cloudflare "Markdown for Agents" para la versión web de fabbro,
+y terminé descubriendo por qué =fetchMarkdown= no funciona en GitHub Pages.
+
+** Hallazgo clave: CORS es el problema real
+
+La función =fetchMarkdown()= en =web/fetch.js= ya manda =Accept: text/markdown, text/html=.
+Pero en GitHub Pages, la mayoría de los sitios bloquean la respuesta por CORS.
+
+Incluso el blog de Cloudflare, que sí sirve markdown, restringe CORS a =dash.cloudflare.com=.
+
+| Destino                      | CORS permitido?              | Funciona desde GH Pages? |
+|------------------------------+------------------------------+--------------------------|
+| GitHub API                   | =*= (abierto)               | ✅ Sí                    |
+| blog.cloudflare.com          | solo dash.cloudflare.com     | ❌ No                    |
+| developers.cloudflare.com    | =*= pero no sirve markdown  | ⚠️ Parcial               |
+| Sitios web arbitrarios       | Ninguno                      | ❌ No                    |
+
+** Opciones evaluadas
+
+*** Opción A: Cloudflare Pages + Functions (recomendada)
+
+Migrar de GitHub Pages a Cloudflare Pages.
+Agregar una sola función serverless como proxy CORS (~20 líneas).
+Free tier: 100K req/día.
+
+- Pro: deployment unificado, beneficia de Markdown for Agents en la misma red
+- Contra: introduce componente servidor (tensión con local-first)
+
+*** Opción B: Worker standalone como proxy
+
+Mantener GH Pages, desplegar un Worker separado.
+Funciona pero son dos deployments.
+
+*** Opción C: Proxy CORS de terceros (corsproxy.io)
+
+Gratis e inmediato pero inseguro y poco confiable.
+No apto para producción.
+
+*** Opción D: Status quo
+
+Aceptar la limitación. URL fetch solo funciona para GitHub.
+Paste y file drop siguen funcionando perfecto.
+
+** Decisión pendiente
+
+La tensión está entre "local-first sin servidor" vs "fetch URLs funcional".
+Opción A es la más pragmática. Opción D es la más honesta con la filosofía.
+
+Documento completo: =research/2026-03-07-cloudflare-markdown-for-agents.md=
