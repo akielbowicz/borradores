@@ -1,0 +1,53 @@
+* Configuración de GitHub Actions Self-Hosted Runner en Linux
+:PROPERTIES:
+:ID:       github-actions-runner-linux
+:END:
+
+** Introducción
+Cuando se agotan los minutos de CI gratuitos en GitHub Actions, una alternativa es configurar un runner propio en una máquina local.
+
+** Pasos para la configuración
+
+1. **Obtener el Token de Registro**
+   - Ir a los ajustes del repositorio: *Settings > Actions > Runners*.
+   - Seleccionar *New self-hosted runner*.
+   - Elegir *Linux* y la arquitectura (ej. *x64*).
+   - Copiar la URL del repo y el token proporcionado.
+
+2. **Preparar la Máquina Linux**
+   - Se recomienda usar un usuario no root.
+   - Crear un directorio para el runner:
+     #+begin_src bash
+     mkdir actions-runner && cd actions-runner
+     #+end_src
+
+3. **Descargar y Extraer**
+   - Descargar el paquete del runner (ejemplo):
+     #+begin_src bash
+     curl -o actions-runner-linux-x64-2.321.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.321.0/actions-runner-linux-x64-2.321.0.tar.gz
+     tar xzf ./actions-runner-linux-x64-2.321.0.tar.gz
+     #+end_src
+
+4. **Configurar el Runner**
+   - Ejecutar el script de configuración con los datos obtenidos en el paso 1:
+     #+begin_src bash
+     ./config.sh --url https://github.com/OWNER/REPO --token YOUR_TOKEN
+     #+end_src
+
+5. **Instalar como Servicio (Opcional pero recomendado)**
+   - Para que se inicie automáticamente:
+     #+begin_src bash
+     sudo ./svc.sh install
+     sudo ./svc.sh start
+     #+end_src
+
+** Uso en Workflows
+Actualizar los archivos YAML en `.github/workflows/` para apuntar al nuevo runner:
+#+begin_src yaml
+jobs:
+  build:
+    runs-on: self-hosted
+#+end_src
+
+** Seguridad
+- **IMPORTANTE**: No usar runners auto-alojados en repositorios públicos debido a riesgos de seguridad con Pull Requests de terceros.
