@@ -1,4 +1,4 @@
-#+title: Playwright MCP no encuentra Chrome en Bluefin (Flatpak)
+#+title: Playwright MCP + Chromium en Bluefin (Fedora Atomic)
 #+date: 2026-03-19
 
 * Problema
@@ -12,7 +12,7 @@ Run "npx playwright install chrome"
 
 * Causa raíz
 
-En Bluefin, Chrome/Chromium está instalado como Flatpak (~org.chromium.Chromium~), no como paquete nativo. Playwright por defecto busca el canal =chrome= en =/opt/google/chrome/chrome=, que no existe.
+En Bluefin/Silverblue, Chrome/Chromium está instalado como Flatpak (~org.chromium.Chromium~), no como paquete nativo. Playwright por defecto busca el canal =chrome= en =/opt/google/chrome/chrome=, que no existe.
 
 Sin embargo, Playwright ya tiene browsers bundled instalados en =~/.cache/ms-playwright/=:
 
@@ -22,7 +22,18 @@ Sin embargo, Playwright ya tiene browsers bundled instalados en =~/.cache/ms-pla
 
 El problema es que la config MCP no le dice que use =chromium= (bundled) en vez de =chrome= (sistema).
 
-* Solución
+* No hace falta distrobox
+
+El Chromium bundled de Playwright corre nativo en Fedora Atomic sin problemas. Verificado:
+
+#+begin_src bash
+~/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome --headless --no-sandbox --dump-dom about:blank
+# → <html><head></head><body></body></html>
+#+end_src
+
+No necesitás instalar Chrome/Chromium vía distrobox, rpm-ostree, ni Flatpak para esto. Playwright trae su propio binario con todas las dependencias.
+
+* Solución para Amp
 
 Agregar =--browser chromium= a los args del MCP server en =~/.config/amp/settings.json=:
 
@@ -41,8 +52,56 @@ Agregar =--browser chromium= a los args del MCP server en =~/.config/amp/setting
 
 Reiniciar Amp después del cambio.
 
+* Solución para Claude Code
+
+Claude Code usa =~/.claude.json= (no =settings.local.json=) para MCP servers. La forma más fácil:
+
+#+begin_src bash
+claude mcp add --transport stdio playwright --scope user -- npx -y @playwright/mcp@latest --headless
+#+end_src
+
+Esto agrega a =~/.claude.json=:
+
+#+begin_src json
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--headless"]
+    }
+  }
+}
+#+end_src
+
+Verificar con =claude mcp list= — debe mostrar =playwright: ✓ Connected=.
+
+** Nota sobre =--headless=
+
+Claude Code no tiene GUI, así que =--headless= es necesario. Amp sí puede abrir ventana de browser, así que ahí es opcional.
+
+** Otros comandos útiles
+
+#+begin_src bash
+claude mcp list               # ver servers y estado
+claude mcp remove playwright  # quitar si hace falta
+#+end_src
+
+* Browsers instalados
+
+#+begin_example
+~/.cache/ms-playwright/
+├── chromium-1208/           ← este es el que usa Playwright MCP
+├── chromium_headless_shell-1208/
+├── ffmpeg-1011/
+└── mcp-chrome/
+#+end_example
+
+=npx playwright install --dry-run= muestra qué versiones están disponibles (chromium, firefox, webkit).
+
 * Notas
 
-- =chrome= = Google Chrome del sistema (requiere instalación nativa)
+- =chrome= = Google Chrome del sistema (requiere instalación nativa, NO existe en Bluefin)
 - =chromium= = browser bundled por Playwright en =~/.cache/ms-playwright/=
-- En sistemas con Flatpak (Bluefin, Silverblue), siempre usar =chromium=
+- En sistemas con Flatpak (Bluefin, Silverblue), siempre usar =chromium= o =--headless=
+- No hace falta distrobox ni rpm-ostree para esto
