@@ -49,5 +49,102 @@ jobs:
     runs-on: self-hosted
 #+end_src
 
+** Problemas conocidos
+
+*** Conflicto con reglas ~insteadOf~ en ~/.gitconfig
+
+*Síntoma:* el paso ~actions/checkout~ falla con exit code 1 después de ~40 segundos, sin mensaje de error claro en los logs del runner.
+
+*Causa:* si el usuario tiene reglas ~url.*.insteadOf~ en su ~~/.gitconfig~ global (por ejemplo, para redirigir HTTPS a SSH con alias personalizados), el runner las hereda porque corre como el mismo usuario. La acción ~checkout~ intenta clonar via HTTPS+token, pero git reescribe la URL a SSH, que el runner no puede autenticar.
+
+Ejemplo de regla problemática:
+#+begin_src gitconfig
+[url "git@sk:sashakile/"]
+    insteadOf = https://github.com/sashakile/
+#+end_src
+
+*Solución:* crear un gitconfig mínimo para el runner y apuntarlo con ~GIT_CONFIG_GLOBAL~ en el archivo ~.env~ del runner:
+
+#+begin_src bash
+# Crear ~/actions-runner/.gitconfig sin reglas insteadOf
+cat > ~/actions-runner/.gitconfig << 'EOF'
+[user]
+    name = github-actions[bot]
+    email = github-actions[bot]@users.noreply.github.com
+EOF
+
+# Agregar al archivo ~/actions-runner/.env
+echo 'GIT_CONFIG_GLOBAL=/var/home/TU_USUARIO/actions-runner/.gitconfig' >> ~/actions-runner/.env
+#+end_src
+
+Reiniciar el runner para que tome los cambios del ~.env~:
+#+begin_src bash
+# Si corre como proceso:
+kill $(pgrep -f Runner.Listener)
+cd ~/actions-runner && ./run.sh &
+
+# Si está instalado como servicio:
+sudo ./svc.sh stop && sudo ./svc.sh start
+#+end_src
+
+*** ~actions/setup-python~ falla en distros no reconocidas (ej. Bluefin/Fedora)
+
+*Síntoma:*
+#+begin_src
+Version 3.12 was not found in the local cache
+The version '3.12' with architecture 'x64' was not found for Bluefin 43 undefined.
+#+end_src
+
+*Causa:* ~actions/setup-python~ busca primero en el tool cache del runner (~_work/_tool/Python/~) y luego intenta descargar un binario precompilado para el OS detectado. Distros no oficiales como Bluefin o Fedora no están en el manifiesto de versiones de la acción.
+
+*Nota:* añadir el binario al ~PATH~ del runner (~.path~) no es suficiente — la acción ignora el PATH y solo mira el tool cache.
+
+*Solución:* sembrar el tool cache manualmente apuntando a un Python ya instalado (por ejemplo, el que gestiona ~uv~):
+
+#+begin_src bash
+TOOL_CACHE=~/actions-runner/_work/_tool
+PYTHON_VERSION=3.12.12  # ajustar a la versión instalada
+UV_PYTHON=~/.local/share/uv/python/cpython-${PYTHON_VERSION}-linux-x86_64-gnu
+
+mkdir -p "$TOOL_CACHE/Python/$PYTHON_VERSION/x64"
+ln -s "$UV_PYTHON/bin"     "$TOOL_CACHE/Python/$PYTHON_VERSION/x64/bin"
+ln -s "$UV_PYTHON/lib"     "$TOOL_CACHE/Python/$PYTHON_VERSION/x64/lib"
+ln -s "$UV_PYTHON/include" "$TOOL_CACHE/Python/$PYTHON_VERSION/x64/include"
+touch "$TOOL_CACHE/Python/$PYTHON_VERSION/x64.complete"
+#+end_src
+
+No requiere reiniciar el runner.
+
+** Múltiples repositorios en una misma máquina
+
+Para cuentas personales (sin org), hay que registrar un proceso runner separado por repositorio. Como todos comparten el mismo ~$HOME~, los caches de Julia (~/.julia~), uv (~/.cache/uv~) y el tool cache se reutilizan automáticamente entre runners.
+
+*** Tool cache compartido
+
+El tool cache está keyed por versión (~Python/3.12.12/x64/~, ~Python/3.11.x/x64/~), así que múltiples versiones conviven sin conflicto. Conviene apuntar todos los runners a un directorio compartido para no tener que sembrar cada versión más de una vez:
+
+#+begin_src bash
+# Crear directorio compartido y mover lo ya sembrado
+mkdir -p ~/.cache/github-actions/tool-cache
+mv ~/actions-runner/_work/_tool/Python ~/.cache/github-actions/tool-cache/
+#+end_src
+
+Agregar a ~.env~ de cada runner:
+#+begin_src bash
+RUNNER_TOOL_CACHE=/var/home/TU_USUARIO/.cache/github-actions/tool-cache
+#+end_src
+
+*** Registrar un runner adicional
+
+#+begin_src bash
+mkdir ~/actions-runner-REPONAME && cd ~/actions-runner-REPONAME
+# reutilizar el tarball ya descargado
+tar xzf ~/actions-runner/actions-runner-linux-x64-2.332.0.tar.gz
+./config.sh --url https://github.com/USUARIO/REPONAME --token TOKEN --name HOSTNAME-REPONAME
+# copiar .env del runner principal (incluye GIT_CONFIG_GLOBAL y RUNNER_TOOL_CACHE)
+cp ~/actions-runner/.env .env
+./run.sh &
+#+end_src
+
 ** Seguridad
 - **IMPORTANTE**: No usar runners auto-alojados en repositorios públicos debido a riesgos de seguridad con Pull Requests de terceros.

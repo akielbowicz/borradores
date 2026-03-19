@@ -1,0 +1,48 @@
+#+title: Playwright MCP no encuentra Chrome en Bluefin (Flatpak)
+#+date: 2026-03-19
+
+* Problema
+
+El Playwright MCP server en Amp falla con:
+
+#+begin_example
+browserType.launchPersistentContext: Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome
+Run "npx playwright install chrome"
+#+end_example
+
+* Causa raíz
+
+En Bluefin, Chrome/Chromium está instalado como Flatpak (~org.chromium.Chromium~), no como paquete nativo. Playwright por defecto busca el canal =chrome= en =/opt/google/chrome/chrome=, que no existe.
+
+Sin embargo, Playwright ya tiene browsers bundled instalados en =~/.cache/ms-playwright/=:
+
+#+begin_example
+~/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome
+#+end_example
+
+El problema es que la config MCP no le dice que use =chromium= (bundled) en vez de =chrome= (sistema).
+
+* Solución
+
+Agregar =--browser chromium= a los args del MCP server en =~/.config/amp/settings.json=:
+
+#+begin_src json
+"amp.mcpServers": {
+  "playwright": {
+    "command": "npx",
+    "args": [
+      "@playwright/mcp@latest",
+      "--browser",
+      "chromium"
+    ]
+  }
+}
+#+end_src
+
+Reiniciar Amp después del cambio.
+
+* Notas
+
+- =chrome= = Google Chrome del sistema (requiere instalación nativa)
+- =chromium= = browser bundled por Playwright en =~/.cache/ms-playwright/=
+- En sistemas con Flatpak (Bluefin, Silverblue), siempre usar =chromium=
