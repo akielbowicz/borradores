@@ -1,0 +1,70 @@
+#+TITLE: Tequitl-XAct-architecture-grilling
+#+DATE: 2026-04-28
+
+* Tequitl / XAct.jl Architecture Grilling Session — Key Decisions
+
+** Context
+
+Architectural interview (grill-me) covering the migration from the XAct.jl string-based engine
+to a new typed tensor CAS called *Tequitl*, built in Julia, with Chacana (Python) as the IR layer.
+
+** Core Architecture Decisions
+
+*** Migration Strategy: Parallel Track (Option C)
+- New system implemented in the ~chacana/tequitl~ repo (separate from XAct.jl)
+- Chacana is a *separate Python repo* — parses expressions, emits MathJSON-style ASTs
+- XAct.jl string engine stays alive until Tequitl reaches feature parity
+- *Exit condition needed*: when Tequitl can reproduce gravitational waves + FLRW notebooks, deprecate string engine
+
+*** Session Design
+- ~Session{S}~ owns live runtime context (tensors, manifolds, symmetries registered at runtime)
+- Chacana's TOML-based GlobalContext = *serialized snapshots* of sessions, not the live representation
+- ~S~ is a *phantom type parameter* — used for dispatch, algebra flavor (GR, gauge theory, etc.)
+- Actual context is a runtime ~AbstractContext~ field inside the struct
+
+*** Parser Architecture
+- Goal: *Julia-native parser* (Tequitl won't depend on Chacana at runtime)
+- Bridge: ~ccall~ into tree-sitter's C library from Julia
+  - Reuses existing grammar, gets incremental parsing for free
+  - Julia side owns AST construction and session-context validation
+  - Chacana's Python layer deprecated gradually
+- *Two-phase parsing*:
+  1. Phase 1: pure, context-free CST → unresolved AST (symbol nodes, unbound operators)
+  2. Phase 2: session-aware resolution pass — binds names to registered objects, checks types/index positions
+- Why: formatter/linter/editor tooling can work on unresolved ASTs without a running session
+
+*** Error Handling
+- Resolution failures: *soft failure with error annotations* on AST nodes
+- Phase 2 always produces a complete AST; unresolvable nodes carry ~ResolutionError~
+- Result type: *roll our own* (~Ok{T}~, ~Err{E}~, ~map_ok~, ~map_err~, ~unwrap_or~)
+  - ~Err~ carries ~Vector{ResolutionError}~ — accumulate all errors in one pass
+  - Lives in ~Tequitl.Core~, reused everywhere resolution returns
+  - No ~Either.jl~ dependency
+
+*** Integration Test Oracle
+- *Numerical evaluation* as primary criterion for Tequitl ↔ XAct.jl parity
+- Symbolic simplification to zero (~tequitl_output - xact_output ≈ 0~) as confirmatory check
+- No string equality against golden files
+
+*** Index Representation
+- Indices are *typed values* (already specified in Chacana repo — not litigated here)
+- See Chacana spec for full index variance, contraction rules, rank validation
+
+*** Symbolics.jl Integration
+- Tequitl lives *inside* Symbolics.jl's term algebra
+- ~TensorTerm <: Symbolics.Symbolic~ carrying ~(name, [IndexSlot...])~ metadata
+- Already prototyped and validated — round-trips through ~simplify(substitute(expr, dict))~
+  with index variance intact
+
+*** Covariant Derivative
+- ~∇[g]_μ T^{νρ}~ — metric carried *symbolically* as explicit operator argument
+- Expressions are metric-agnostic until ~substitute~ is called
+- Expansion to Christoffel symbols via generic rewrite rule parameterized by rank + index slots
+  - Generates correct number of Γ terms at rewrite time by inspecting ~IndexSlot~ list
+  - Sign determined by variance; one rule covers all tensor types
+
+** Open Questions / Next Prototypes
+
+1. Verify generic covariant derivative rewrite rule works in Symbolics.jl (inspect term metadata at rewrite time)
+2. Define exit condition for XAct.jl string engine deprecation concretely
+3. Design tree-sitter Julia ccall wrapper (loading grammar, walking CST)
