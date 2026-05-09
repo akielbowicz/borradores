@@ -1,0 +1,117 @@
+#+title: Org-mode syntax
+#+date: 2026-05-09
+
+* Headings
+
+#+begin_src org
+,* Heading 1
+,** Heading 2
+,*** Heading 3
+#+end_src
+
+* Text formatting
+
+| Syntax | Result |
+|--------+--------|
+| =*bold*= | *bold* |
+| =/italic/= | /italic/ |
+| ===code=== | =code= |
+| =~verbatim~= | ~verbatim~ |
+| =+strikethrough+= | +strikethrough+ |
+| =_underline_= | _underline_ |
+
+* Links
+
+#+begin_src org
+[[https://example.com][Link text]]
+[[file:other-file.org][Local file]]
+[[#heading-id][Internal link]]
+#+end_src
+
+* Lists
+
+#+begin_src org
+- Unordered item
+  - Nested item
+- Another item
+
+1. Ordered item
+2. Another
+
+- [ ] Todo item
+- [X] Done item
+#+end_src
+
+* Tables
+
+#+begin_src org
+| Column 1 | Column 2 | Column 3 |
+|----------+----------+----------|
+| cell     | cell     | cell     |
+#+end_src
+
+Tip: =TAB= inside a table auto-aligns columns.
+
+* Source blocks
+
+#+begin_src org
+,#+begin_src python
+print("hello")
+,#+end_src
+#+end_src
+
+Common languages: =python=, =bash=, =js=, =nu=, =org=, =sql=, =rust=
+
+* TODO keywords
+
+#+begin_src org
+,* TODO Task to do
+,* DONE Completed task
+,* WAIT Waiting on something
+#+end_src
+
+* Properties and metadata
+
+#+begin_src org
+,#+title: Document Title
+,#+date: 2026-05-09
+,#+author: Name
+,#+filetags: :tag1:tag2:
+
+,* Heading
+:PROPERTIES:
+:ID: unique-id
+:END:
+#+end_src
+
+* Timestamps and dates
+
+#+begin_src org
+<2026-05-09 Fri>          active timestamp
+[2026-05-09 Fri]          inactive timestamp
+<2026-05-09 Fri 10:00>    with time
+#+end_src
+
+* Drawers
+
+#+begin_src org
+:LOGBOOK:
+- Note taken on [2026-05-09 Fri]
+:END:
+#+end_src
+
+* Export / comments
+
+#+begin_src org
+,#+begin_comment
+This won't export.
+,#+end_comment
+
+# This line is a comment
+#+end_src
+
+* Horizontal rule
+
+#+begin_src org
+-----
+#+end_src
