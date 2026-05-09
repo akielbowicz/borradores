@@ -17,7 +17,7 @@ En Bluefin/Silverblue, Chrome/Chromium está instalado como Flatpak (~org.chromi
 Sin embargo, Playwright ya tiene browsers bundled instalados en =~/.cache/ms-playwright/=:
 
 #+begin_example
-~/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome
+~/.cache/ms-playwright/chromium-1212/chrome-linux64/chrome
 #+end_example
 
 El problema es que la config MCP no le dice que use =chromium= (bundled) en vez de =chrome= (sistema).
@@ -27,7 +27,7 @@ El problema es que la config MCP no le dice que use =chromium= (bundled) en vez 
 El Chromium bundled de Playwright corre nativo en Fedora Atomic sin problemas. Verificado:
 
 #+begin_src bash
-~/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome --headless --no-sandbox --dump-dom about:blank
+~/.cache/ms-playwright/chromium-1212/chrome-linux64/chrome --headless --no-sandbox --dump-dom about:blank
 # → <html><head></head><body></body></html>
 #+end_src
 
@@ -54,27 +54,48 @@ Reiniciar Amp después del cambio.
 
 * Solución para Claude Code
 
-Claude Code usa =~/.claude.json= (no =settings.local.json=) para MCP servers. La forma más fácil:
+** El plugin ignora =.mcp.json=
+
+Claude Code tiene un plugin oficial de Playwright (=playwright@claude-plugins-official=). El plugin define un =.mcp.json= en:
+
+#+begin_example
+~/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/playwright/.mcp.json
+#+end_example
+
+Pero Claude Code *ignora los args del =.mcp.json= del plugin*. Siempre lanza:
+
+#+begin_example
+npm exec @playwright/mcp@latest --headless
+#+end_example
+
+Sin =--browser chromium=, sin =--executable-path=, sin =env=. Editar ese =.mcp.json= no tiene efecto.
+
+Tampoco funciona:
+- =pluginConfigs= en =settings.json= (no pasa args al proceso)
+- =env.CHROME_PATH= en =settings.json= (Playwright no lee esa variable)
+
+** Solución: symlink
+
+La solución más simple es crear un symlink donde Playwright busca Chrome:
 
 #+begin_src bash
-claude mcp add --transport stdio playwright --scope user -- npx -y @playwright/mcp@latest --headless
+sudo mkdir -p /opt/google/chrome
+sudo ln -s ~/.cache/ms-playwright/chromium-1212/chrome-linux64/chrome /opt/google/chrome/chrome
 #+end_src
 
-Esto agrega a =~/.claude.json=:
+Esto hace que el canal =chrome= (el default) encuentre el Chromium bundled de Playwright. No requiere cambios de config.
 
-#+begin_src json
-{
-  "mcpServers": {
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest", "--headless"]
-    }
-  }
-}
+*Nota*: cuando Playwright se actualiza y cambia la versión del browser (ej: =chromium-1212= → =chromium-1220=), hay que actualizar el symlink.
+
+** Alternativa: =claude mcp add=
+
+Si no querés el symlink, podés agregar el MCP server manualmente con =--browser chromium=:
+
+#+begin_src bash
+claude mcp add --transport stdio playwright --scope user -- npx -y @playwright/mcp@latest --browser chromium --headless
 #+end_src
 
-Verificar con =claude mcp list= — debe mostrar =playwright: ✓ Connected=.
+Esto agrega a =~/.claude.json= y bypasea el plugin. Verificar con =claude mcp list=.
 
 ** Nota sobre =--headless=
 
@@ -91,10 +112,11 @@ claude mcp remove playwright  # quitar si hace falta
 
 #+begin_example
 ~/.cache/ms-playwright/
-├── chromium-1208/           ← este es el que usa Playwright MCP
-├── chromium_headless_shell-1208/
+├── chromium-1212/           ← este es el que usa Playwright MCP
+├── chromium_headless_shell-1212/
 ├── ffmpeg-1011/
-└── mcp-chrome/
+├── mcp-chrome/              ← user data dir (perfil) del MCP con canal chrome
+└── mcp-chromium/            ← user data dir (perfil) del MCP con canal chromium
 #+end_example
 
 =npx playwright install --dry-run= muestra qué versiones están disponibles (chromium, firefox, webkit).

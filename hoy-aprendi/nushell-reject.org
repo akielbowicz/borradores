@@ -1,0 +1,13 @@
+#+TITLE: nushell-reject
+#+DATE: 2026-05-09
+
+* Nushell: =reject= como complemento de =select=
+
+=reject= remueve columnas de una tabla o record, el opuesto de =select=.
+
+#+begin_src nu
+> $env | reject VSCODE_GIT_IPC_HANDLE
+#+end_src
+
+Útil para filtrar variables de entorno o cualquier record grande donde
+querés excluir en vez de enumerar lo que querés.
