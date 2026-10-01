@@ -1,0 +1,54 @@
+#+TITLE: WhatsApp crypt15 backup extraction (no root)
+#+DATE: 2026-10-01
+
+* Objetivo
+
+Extraer el historial completo de WhatsApp de un Android *sin root*: mensajes viejos
+que la API (Baileys/uarup) no sirve + media purgada del CDN + call logs.
+
+* Por qué la API no alcanza
+
+- Baileys es un linked device: el teléfono decide cuánto historial sirve
+  (vimos "exhausted" con 1 mensaje por chat).
+- Media solo se baja del CDN mientras exista; WhatsApp lo purga
+  ("beyond WhatsApp retention; re-upload 404").
+- Call logs, statuses view history, DB local: nunca expuestos por la API.
+
+* Rutas de extracción (sin root)
+
+- *A) Export chat por chat*: WhatsApp → chat → Export chat (con media). TXT completo
+  del historial local. Manual, tedioso para 400+ chats, ideal para pocos chats.
+- *B) DB local (esta ruta)*: copiar msgstore.db.crypt15 de
+  =/Android/media/com.whatsapp/WhatsApp/Databases/= vía USB (no hace falta root).
+  Descifrar con la key.
+- *C) iPhone*: backup iTunes sin cifrar → ChatStorage.sqlite.
+- *D) Media*: copiar =WhatsApp/Media= directo del teléfono (recupera lo purgado).
+
+* La key (el único problema real)
+
+- Key AES-256 aleatoria de 32 bytes en =/data/data/com.whatsapp/files/key= (root only).
+- *Crackear: NO* — 2^256, GCM auth tag, no hay atajo. Los "crackers" online son scams.
+- Sin root, la key se obtiene por:
+  1. *Google Drive*: con backups a Drive (no-E2E), la key se sube a la carpeta
+     appdata de Drive ("WhatsApp"). INVISIBLE en la web UI; solo via API con scope
+     =drive.appdata=. Herramienta: WhatsApp-GD-Extractor (GitHub), con app password
+     de Google si hay 2FA. Alternativa limpia: script propio OAuth (drive.appdata).
+  2. *E2E backup*: si está activado, la key de 64 dígitos descifra directo
+     (wa-crypt-tools). Caso actual: NO es E2E → ruta Drive.
+- *La key rota* (reinstall, reset) pero Drive appdata guarda TODAS las versiones en
+  =gdrive_file_map=. Bajar todas y probar contra cada DB.
+
+* Tooling
+
+- =pip install wa-crypt-tools= (crypt12/14/15).
+- Descifrar: =wadecrypt15 <key> msgstore.db.crypt15 → msgstore.db= (SQLite).
+- Probar cada versión de key contra cada DB vieja hasta match.
+
+* Estado actual (2026-09/10)
+
+- uarup: backfill completo 419/419 chats, +4.978 msgs recuperados, 445 transcripts.
+- 2025-06-13: 0 mensajes definitivo (lo que WhatsApp puede servir).
+- 2 attachments del 10/11-jun recuperados OK (media/<jid>/ subdirs, no flat!).
+- Forced export (--media --force) corriendo: reintentos de ~1.488 media fallidos,
+  mayoría 404 terminal. Transcripts ya reescritos (445/445).
+- Pendiente: key de Drive → decrypt de DBs viejas (usuario tiene DBs viejas).
