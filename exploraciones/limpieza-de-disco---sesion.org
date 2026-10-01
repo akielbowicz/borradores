@@ -1,0 +1,33 @@
+#+TITLE: Limpieza de disco - sesion
+#+DATE: 2026-10-01
+
+* Limpieza de disco — resumen de sesión
+
+Resultado: 862G usados / 65G libres → 269G usados / 649G libres. ~593G liberados.
+
+* Acciones
+| # | Acción | Liberado |
+|---+--------+----------|
+| 1 | cargo clean en =dont= (builds debug Rust) | 130G |
+| 2 | Build artifacts de =fotos= (=target/=, =.flatpak-builder/=) | ~60G |
+| 3 | 12 worktrees de Claude Code + ramas en =dont= | ~63G |
+| 4 | VM de Rancher Desktop en =astra-zeneca= | ~66G |
+| 5 | Cachés de herramientas (uv, rattler, npm, brew, pip, playwright, torch) | ~35G |
+| 6 | 9 dirs =target/= Rust en repos de charly | ~180G |
+| 7 | Cachés de Julia (=compiled/=, =scratchspaces/=, =artifacts/=, =conda/=) | ~14G |
+| 8 | Papelera vaciada | ~8G |
+| 9 | =podman system prune -a= | 29G |
+| 10 | Modelos locales de ramalama (qwen3, llava, llama3.2) | ~6G |
+| 11 | =PAPRIVA/.pixi= | ~21G |
+
+* Lo que se conservó deliberadamente
+- =~/para/.../materiales/= (19G) — producción de podcast: proyectos Audacity (.aup3), WAV masters, MP3, audio crudo. NO es basura.
+- =~/PROJECTOR= (22G) — media real (Shows, Movies)
+- =PAPRIVA= data/notebooks/results (~6G) — trabajo real
+- =~/.local/share/containers= — storage podman restante tras prune
+
+* Pendientes / recomendaciones
+- [ ] Backup externo de =materiales/= (19G) — grabaciones originales irremplazables
+- [ ] =el-mundo= =.venv= + =dist/= (9.4G) — seguro, regenerable desde lockfiles
+- [ ] ~70G en =/ostree= + =/var/lib= — recuperar con =sudo rpm-ostree cleanup -m=
+- [ ] Hábito: barrido periódico de =target/= y =~/.cache= (lo que más re-crece)
