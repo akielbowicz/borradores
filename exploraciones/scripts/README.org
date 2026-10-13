@@ -1,0 +1,13 @@
+* Filtros jq para pi-sessions-context-usage.org
+Uso (desde ~/.pi/agent/sessions):
+#+begin_src bash
+# 1. Resumen por sesión (pico, atribución por fuente)
+for f in $(find . -name '*.jsonl'); do
+  jq -s -c --arg file "$f" -f ctx_analysis2.jq -- "$f" 2>/dev/null
+done > /tmp/ctx2_sessions.jsonl
+
+# 2. Tabla por mes x modelo (Era 2+)
+jq -s -f era2.jq /tmp/ctx2_sessions.jsonl
+
+# 3. Dominancia en sesiones grandes (>100k)
+jq -s -f era2c.jq /tmp/ctx2_sessions.jsonl
