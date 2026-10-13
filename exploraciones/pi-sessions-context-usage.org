@@ -1,0 +1,124 @@
+#+TITLE: pi-sessions-context-usage
+#+DATE: 2026-10-13
+
+* Investigación: distribución y atribución del uso de contexto en sesiones de Pi
+:PROPERTIES:
+:ID: pi-context-usage-2026-10
+:END:
+
+** Pregunta
+¿Cómo se distribuye el uso de contexto en las sesiones de Pi (~/.pi/agent/sessions)
+y qué cosas lo causan? ¿Está cambiando el comportamiento en el tiempo?
+
+** Método
+- Corpus: 1.828 sesiones (~204k tool calls), Abr 2026 – Oct 2026.
+- El ~usage~ reportado por la API es inservible para sesiones con proveedor
+  ~claude-cli~ (el ~cacheRead~ salta de forma absurda: 34k→766k→171k en una misma
+  sesión). Se estima el contexto desde el transcript: chars/4 acumulados por turno.
+- Validación: la estimación transcript corre ~1.4× por debajo del contexto real
+  (overhead JSON, system prompt, schemas de tools) — multiplicar por ~1.4.
+- Atribución por fuente: user / assistant (text, thinking, toolCall args) / cada
+  tool name; y resultados >25k chars ("big results").
+
+** Distribución del pico de contexto por sesión (estimación conservadora)
+| percentil | pico |
+|-----------+------|
+| p50       | ~75k tok |
+| p75       | ~126k |
+| p90       | ~180k |
+| p95       | ~217k |
+| p99       | ~532k |
+| max       | 4.2M (patológico, ver abajo) |
+
+La masa vive en 25–100k; cola larga. 492 sesiones son stubs casi vacíos.
+
+** Qué hay dentro del contexto (todo el corpus, ~710M chars)
+| fuente                        | share | volumen |
+|-------------------------------+-------+---------|
+| assistant (text+thinking+args)| 51%   | 364M    |
+| bash results                  | 32%   | 226M    |
+| read results                  | 15%   | 109M    |
+| user messages                 | 0.7%  | 5M      |
+
+- El largo de la sesión es el driver dominante: pico mediano ~12k (0–50 turnos)
+  → ~194k (300–350 turnos) → >1M (800+ turnos).
+- De las 645 sesiones >100k: 415 assistant-dominated, 187 bash, 42 read.
+- 158 sesiones sufrieron compactación (382 eventos); 112 de ellas assistant-dominated.
+- Blowups puntuales: 1.265 resultados bash y 401 reads superaron 25k chars en una llamada.
+
+** Evolución temporal: tres eras, definidas por el modelo
+
+| mes      | sesiones | med turnos | pico med | >100k | asst% | bash% | read% | asst tok/turn |
+|----------+----------+------------+----------+-------+-------+-------+-------+---------------|
+| 2026-04  | 180      | 33         | 45k      | 19%   | 24%   | 42%   | 33%   | ~310          |
+| 2026-05  | 259      | 14         | 12k      | 12%   | 25%   | 43%   | 29%   | ~326          |
+| 2026-06  | 17       | 55         | 34k      | 29%   | 43%   | 34%   | 21%   | ~349          |
+| *2026-07 | 318      | *158*      | *146k*   | *72%* | 61%   | 22%   | 16%   | ~699*         |
+| *2026-08 | 53       | 94         | 106k     | 51%   | *69%* | 19%   | 12%   | ~802*         |
+| 2026-09  | 409      | 92         | 75k      | 31%   | 53%   | 33%   | 13%   | ~405          |
+| 2026-10  | 572      | 92         | 77k      | 34%   | 46%   | 41%   | 10%   | ~386          |
+
+- *Era 1 (Abr–May)*: gpt-5.4/5.5 + claude-cli. Sesiones cortas, bash-heavy
+  (42–43%). La "compactación 44%" de May es artefacto: auto-compact interno de
+  claude-cli, no del agente.
+- *Era 2 (Jul–Ago)*: deepseek-v4-flash + glm-5.2. El pico de bloat: sesiones
+  largas (158 turnos), picos medianos 146k, 72% >100k. Julio cargó solo más
+  contexto que Abr+May+Ago+Jun combinados.
+- *Era 3 (Sep–Oct)*: glm-5.3-flash. Normalización: pico med 75–77k, >100k 30–34%,
+  compactación ~0%. Reads targeting: share de read 33% → 10% mes a mes.
+
+** Atribución fina de Era 2 → Era 3 (tras limpiar patologías)
+
+Importante: el "bloat de assistant" de Era 2 estaba inflado por sesiones
+patológicas — deepseek-v4-flash emite markup roto de tool-calls (~raw DSML~)
+como bloques de texto gigantes (uno de 16.4M chars → pico 4.2M). Filtradas:
+
+| modelo (limpio)      | sesiones | asst tok/turn | think% | text% | args% | pico med | >100k |
+|----------------------+----------+---------------+--------+-------+-------+----------+-------|
+| glm-5.3-flash (E3)   | 980      | 388           | 52%    | 8%    | 40%   | 76k      | 32%   |
+| deepseek-v4-fl (E2)  | 306      | 310           | 37%    | 16%   | 47%   | 136k     | 68%   |
+| glm-5.2 (E2)         | 19       | 430           | 40%    | 16%   | 44%   | 127k     | 79%   |
+
+*** Hallazgo central: el contexto crece ~lineal a ~850 tok/turno en TODAS las eras
+| modelo    | turnos med | pico med | crecimiento/turno |
+|-----------+------------+----------+-------------------|
+| deepseek  | 158        | 136k     | *861*             |
+| glm-5.2   | 158        | 127k     | *804*             |
+| glm-5.3   | 90         | 76k      | *841*             |
+
+El comportamiento por turno casi no cambió entre eras. **La mejora de Era 3 NO es
+turnos más livianos — son sesiones ~40% más cortas** (158 → 90 turnos) + la
+desaparición de los glitches. Con ~850 tok/turno una ventana de 200k se agota en
+~230 turnos, sin importar el modelo.
+
+*** Composición dentro de sesiones grandes (>100k)
+| mes     | big | dominio            | chars med: asst | bash  | read |
+|---------+-----+--------------------+-----------------+-------+------|
+| 2026-07 | 228 | asst 161, bash 50  | 304k            | 186k  | 150k |
+| 2026-08 | 27  | asst 19, bash 7    | 286k            | 177k  | 120k |
+| 2026-09 | 125 | asst 100, bash 19  | 294k            | 163k  | 51k  |
+| 2026-10 | 193 | asst 128, *bash 61*| 280k            | *214k*| *40k*|
+
+Siguen siendo ~65–70% assistant-dominated en todos los meses. Pero: el volumen de
+*read* en sesiones grandes colapsó (150k → 40k chars med) y el de *bash vuelve a
+crecer* — Oct tiene más sesiones bash-dominadas que ninguna era excepto Jul.
+
+** Descomposición de la mejora (pico med 136k → 76k, −45%)
+1. ~40%: sesiones más cortas (158 → 90 turnos) — cambio de workflow, no del modelo.
+2. ~15–20%: desaparición de blowups DSML (patología exclusiva de la era DeepSeek).
+3. ~0%: verbosidad del assistant por turno — esencialmente constante (310–430 tok/turn).
+4. Parcialmente compensado por: bash output creciendo en share (nueva frontera).
+
+** Caveats
+- thinking blocks se cuentan en el transcript; si la API no re-envía thinking de
+  turnos previos (p.ej. Anthropic lo stripea), la cuota real de assistant baja un
+  poco — no cambia la conclusión de turn-count.
+- Estimación chars/4 subestima ~40% (validado contra usage de no-claude-cli).
+- Filtros jq usados en la investigación (transitorios, en /tmp/ctx_analysis*.jq):
+  reconstruir según Método si hace falta re-correr.
+
+** Acciones derivadas
+- Truncar output de bash (tail/head + límites) — es el riesgo #1 vigente.
+- Evitar reads de archivo completo en sesiones largas (ya mejoró 33%→10%).
+- Cerrar/sesiones nuevas pasados ~150 turnos (~130k contexto con crecimiento lineal).
+- Filtrar proveedor claude-cli en cualquier análisis futuro de usage.
